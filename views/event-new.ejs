@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>New event — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="auth-page">
+    <form class="card auth-card" method="POST" action="/events">
+      <h1>Create an event</h1>
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
+      <label>Event name<input type="text" name="title" value="<%= title %>" placeholder="e.g. Priya &amp; Rohan's Wedding" required></label>
+      <label>Date (optional)<input type="date" name="eventDate" value="<%= eventDate %>"></label>
+      <label>Guest password (optional)<input type="text" name="guestPassword" value="<%= guestPassword %>" placeholder="Leave blank for an open gallery"></label>
+      <button type="submit" class="btn btn-block">Create event</button>
+    </form>
+  </main>
+</body>
+</html>

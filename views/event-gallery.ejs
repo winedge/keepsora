@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title><%= event.title %> — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body data-event-slug="<%= event.slug %>">
+  <%- include('partials/nav') %>
+  <main class="page">
+    <div class="page-head">
+      <div>
+        <h1><%= event.title %></h1>
+        <p class="muted"><%= event.event_date || '' %></p>
+      </div>
+    </div>
+
+    <div class="card selfie-card">
+      <div class="selfie-card-inner">
+        <div class="selfie-avatar" id="selfieAvatar">
+          <span class="selfie-avatar-icon">🤳</span>
+          <img id="selfiePreview" hidden>
+          <span class="selfie-spinner" id="selfieSpinner" hidden></span>
+        </div>
+        <div class="selfie-copy">
+          <p class="label">Find your photos</p>
+          <p class="muted small">Take or upload a selfie. Matching happens right here in your browser — your selfie is never uploaded anywhere.</p>
+          <p class="selfie-status" id="matchStatus">Loading face recognition models…</p>
+          <div class="selfie-actions">
+            <label class="btn btn-lg selfie-cta">
+              📷 Take or upload a selfie
+              <input type="file" id="selfieInput" accept="image/*" capture="user" hidden>
+            </label>
+            <button class="btn btn-ghost" id="clearMatchBtn" hidden>Show all photos instead</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="label" id="gridLabel">All photos</p>
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>
+
+    <p class="muted small report-link-row">
+      <button type="button" class="link-btn" id="reportToggleBtn">🚩 Report this gallery</button>
+    </p>
+    <form id="reportForm" class="card report-form" hidden>
+      <p class="label">Report this gallery</p>
+      <label>Reason
+        <select name="reason" id="reportReason">
+          <option value="no_consent">Someone's photo is here without their consent</option>
+          <option value="inappropriate">Inappropriate or illegal content</option>
+          <option value="spam_or_scam">Spam or a scam</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label>Details (optional)<textarea name="details" id="reportDetails" rows="3" maxlength="1000"></textarea></label>
+      <div class="report-form-actions">
+        <button type="submit" class="btn btn-sm">Send report</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="reportCancelBtn">Cancel</button>
+      </div>
+      <p class="muted small" id="reportStatus"></p>
+    </form>
+  </main>
+
+  <div class="lightbox" id="lightbox" hidden>
+    <button class="lightbox-close" id="lightboxClose">✕</button>
+    <img id="lightboxImg">
+    <a id="lightboxDownload" class="btn" download>Download</a>
+  </div>
+
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/match.js"></script>
+</body>
+</html>

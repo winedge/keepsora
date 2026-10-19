@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Admin — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="page">
+    <div class="page-head">
+      <h1>Admin</h1>
+    </div>
+
+    <% if (notice) { %><p class="notice"><%= notice %></p><% } %>
+
+    <div class="admin-stats">
+      <div class="card admin-stat"><span class="admin-stat-num"><%= stats.users %></span><span class="muted small">Users</span></div>
+      <div class="card admin-stat"><span class="admin-stat-num"><%= stats.events %></span><span class="muted small">Events</span></div>
+      <div class="card admin-stat"><span class="admin-stat-num"><%= stats.photos %></span><span class="muted small">Photos</span></div>
+      <div class="card admin-stat"><span class="admin-stat-num"><%= stats.openReports %></span><span class="muted small">Open reports</span></div>
+    </div>
+
+    <div class="card">
+      <p class="label">Guest reports<% if (stats.openReports > 0) { %> <span class="badge">⚠ <%= stats.openReports %> open</span><% } %></p>
+      <% if (reports.length === 0) { %>
+        <p class="muted">No reports yet.</p>
+      <% } else { %>
+        <table class="ledger-table">
+          <thead><tr><th>Event</th><th>Reason</th><th>Details</th><th>Status</th><th>Date</th><th></th></tr></thead>
+          <tbody>
+            <% reports.forEach(r => { %>
+              <tr>
+                <td><a href="/e/<%= r.event_slug %>" target="_blank"><%= r.event_title %></a></td>
+                <td><%= r.reason %></td>
+                <td><%= r.details || '—' %></td>
+                <td><%= r.status %></td>
+                <td><%= r.created_at %></td>
+                <td>
+                  <% if (r.status === 'open') { %>
+                    <form method="POST" action="/admin/reports/<%= r.id %>/resolve" class="inline-form">
+                      <button type="submit" class="btn btn-sm btn-ghost">Mark resolved</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <p class="label">Users</p>
+      <table class="ledger-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Events</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+        <tbody>
+          <% users.forEach(u => { %>
+            <tr>
+              <td><%= u.name %><% if (u.is_admin) { %> <span class="badge">admin</span><% } %></td>
+              <td><%= u.email %></td>
+              <td><%= u.plan %></td>
+              <td><%= u.event_count %></td>
+              <td><%= u.is_suspended ? `suspended${u.suspended_reason ? ': ' + u.suspended_reason : ''}` : 'active' %></td>
+              <td><%= u.created_at %></td>
+              <td>
+                <% if (!u.is_admin) { %>
+                  <% if (u.is_suspended) { %>
+                    <form method="POST" action="/admin/users/<%= u.id %>/unsuspend" class="inline-form">
+                      <button type="submit" class="btn btn-sm btn-ghost">Unsuspend</button>
+                    </form>
+                  <% } else { %>
+                    <form method="POST" action="/admin/users/<%= u.id %>/suspend" class="inline-form admin-suspend-form">
+                      <input type="text" name="reason" placeholder="Reason (optional)" maxlength="300">
+                      <button type="submit" class="btn btn-sm btn-ghost">Suspend</button>
+                    </form>
+                  <% } %>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="label">Events</p>
+      <table class="ledger-table">
+        <thead><tr><th>Title</th><th>Owner</th><th>Photos</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+          <% events.forEach(e => { %>
+            <tr>
+              <td><a href="/e/<%= e.slug %>" target="_blank"><%= e.title %></a></td>
+              <td><%= e.owner_email %></td>
+              <td><%= e.photo_count %></td>
+              <td><%= e.created_at %></td>
+              <td>
+                <form method="POST" action="/admin/events/<%= e.id %>/delete" class="inline-form admin-delete-event-form">
+                  <button type="submit" class="btn btn-sm btn-ghost">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="label">Enterprise leads</p>
+      <% if (leads.length === 0) { %>
+        <p class="muted">No leads yet.</p>
+      <% } else { %>
+        <table class="ledger-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Message</th><th>Date</th></tr></thead>
+          <tbody>
+            <% leads.forEach(l => { %>
+              <tr>
+                <td><%= l.name %></td>
+                <td><%= l.email %></td>
+                <td><%= l.company || '—' %></td>
+                <td><%= l.message || '—' %></td>
+                <td><%= l.created_at %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </main>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

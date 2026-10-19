@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Dashboard — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="page">
+    <div class="page-head">
+      <h1>Your events</h1>
+      <a href="/events/new" class="btn">+ New event</a>
+    </div>
+
+    <% if (events.length === 0) { %>
+      <div class="empty-state">
+        <p>You haven't created an event yet.</p>
+        <a href="/events/new" class="btn">Create your first event</a>
+      </div>
+    <% } else { %>
+      <div class="event-grid">
+        <% events.forEach(ev => { %>
+          <a class="event-card" href="/events/<%= ev.id %>/manage">
+            <h3><%= ev.title %></h3>
+            <p class="muted"><%= ev.event_date || 'No date set' %></p>
+            <p class="muted"><%= ev.photo_count %> photo<%= ev.photo_count === 1 ? '' : 's' %></p>
+            <% if (ev.guest_password) { %><span class="badge">🔒 Password protected</span><% } %>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>

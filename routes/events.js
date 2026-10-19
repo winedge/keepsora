@@ -1,0 +1,249 @@
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+const { nanoid } = require('nanoid');
+const db = require('../db');
+const { requireAuth } = require('../middleware/auth');
+const { slugify } = require('../utils/slug');
+const upload = require('../utils/upload');
+const { chargeForPhotos, usageSummary } = require('../utils/billing');
+const { formatCents } = require('../utils/plans');
+const googleDrive = require('../utils/googleDrive');
+const { eventCreateLimiter, uploadLimiter, driveImportLimiter } = require('../middleware/rateLimiters');
+
+const router = express.Router();
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+
+function getOwnedEvent(req) {
+  const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
+  if (!event || event.user_id !== req.user.id) return null;
+  return event;
+}
+
+async function storeImageBuffer(event, buffer, driveFileId = null) {
+  const eventDir = path.join(UPLOADS_DIR, event.slug);
+  fs.mkdirSync(eventDir, { recursive: true });
+
+  const filename = `${nanoid(12)}.jpg`;
+  const outPath = path.join(eventDir, filename);
+  const meta = await sharp(buffer)
+    .rotate()
+    .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toFile(outPath);
+
+  const info = db.prepare(`
+    INSERT INTO photos (event_id, filename, width, height, drive_file_id) VALUES (?, ?, ?, ?, ?)
+  `).run(event.id, filename, meta.width, meta.height, driveFileId);
+
+  return {
+    photoId: info.lastInsertRowid,
+    url: `/uploads/${event.slug}/${filename}`,
+    width: meta.width,
+    height: meta.height,
+  };
+}
+
+router.get('/dashboard', requireAuth, (req, res) => {
+  const events = db.prepare(`
+    SELECT e.*, COUNT(p.id) AS photo_count
+    FROM events e LEFT JOIN photos p ON p.event_id = e.id
+    WHERE e.user_id = ?
+    GROUP BY e.id ORDER BY e.created_at DESC
+  `).all(req.user.id);
+  res.render('dashboard', { events });
+});
+
+router.get('/events/new', requireAuth, (req, res) => {
+  res.render('event-new', { error: null, title: '', eventDate: '', guestPassword: '' });
+});
+
+router.post('/events', requireAuth, eventCreateLimiter, (req, res) => {
+  const title = (req.body.title || '').trim().slice(0, 150);
+  const eventDate = (req.body.eventDate || '').trim().slice(0, 40);
+  const guestPassword = (req.body.guestPassword || '').trim().slice(0, 200);
+
+  if (!title) {
+    return res.render('event-new', { error: 'Please give your event a name.', title, eventDate, guestPassword });
+  }
+
+  const slug = slugify(title);
+  const info = db.prepare(`
+    INSERT INTO events (user_id, title, slug, event_date, guest_password)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(req.user.id, title, slug, eventDate || null, guestPassword || null);
+
+  fs.mkdirSync(path.join(UPLOADS_DIR, slug), { recursive: true });
+  res.redirect(`/events/${info.lastInsertRowid}/manage`);
+});
+
+router.get('/events/:id/manage', requireAuth, (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).render('404');
+  const photos = db.prepare(`
+    SELECT p.*, (SELECT COUNT(*) FROM faces f WHERE f.photo_id = p.id) AS face_count
+    FROM photos p WHERE p.event_id = ? ORDER BY p.created_at DESC
+  `).all(event.id);
+  res.render('event-manage', {
+    event,
+    photos,
+    host: `${req.protocol}://${req.get('host')}`,
+    usage: usageSummary(req.user.id, event),
+    driveConfigured: Boolean(process.env.GOOGLE_API_KEY),
+  });
+});
+
+router.post('/events/:id/photos', requireAuth, uploadLimiter, upload.array('photos', 40), async (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
+
+  const charge = chargeForPhotos(req.user.id, event, req.files.length);
+  if (!charge.ok) {
+    return res.status(402).json({
+      error: 'insufficient_credit',
+      message: `You need ${formatCents(charge.needed)} more in your balance to upload ${charge.billable} photo${charge.billable === 1 ? '' : 's'} beyond your plan's free quota.`,
+      needed: charge.needed,
+      balance: charge.balance,
+    });
+  }
+
+  const results = [];
+  for (const file of req.files) {
+    try {
+      results.push(await storeImageBuffer(event, file.buffer));
+    } catch (err) {
+      results.push({ error: err.message, originalName: file.originalname });
+    }
+  }
+
+  res.json({ photos: results });
+});
+
+router.get('/events/:id/unprocessed-photos', requireAuth, (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const photos = db.prepare(`
+    SELECT id, filename FROM photos WHERE event_id = ? AND faces_processed = 0 ORDER BY created_at ASC
+  `).all(event.id);
+
+  res.json({
+    photos: photos.map((p) => ({ id: p.id, url: `/uploads/${event.slug}/${p.filename}` })),
+  });
+});
+
+router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    return res.status(400).json({
+      error: 'not_configured',
+      message: 'Google Drive sync is not configured on this server. An administrator needs to set GOOGLE_API_KEY (with the Drive API enabled) as an environment variable.',
+    });
+  }
+
+  const driveUrl = (req.body.driveUrl || '').trim().slice(0, 2000);
+  const folderId = googleDrive.parseFolderId(driveUrl);
+  if (!folderId) {
+    return res.status(400).json({ error: 'invalid_url', message: "That doesn't look like a Google Drive folder link." });
+  }
+
+  let files;
+  try {
+    files = await googleDrive.listImageFiles(folderId, apiKey);
+  } catch (err) {
+    return res.status(502).json({ error: 'drive_error', message: `Could not read that Drive folder: ${err.message}` });
+  }
+
+  const alreadyImported = new Set(
+    db.prepare('SELECT drive_file_id FROM photos WHERE event_id = ? AND drive_file_id IS NOT NULL').all(event.id)
+      .map((r) => r.drive_file_id)
+  );
+  const toImport = files.filter((f) => !alreadyImported.has(f.id));
+
+  if (toImport.length === 0) {
+    return res.json({ imported: [], skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
+  }
+
+  // Charge per photo as it's actually stored, so a failed download or a wallet
+  // that runs out partway through only charges for photos that really landed.
+  const imported = [];
+  let skipped = files.length - toImport.length;
+  let blockedByCredit = null;
+
+  for (const file of toImport) {
+    const charge = chargeForPhotos(req.user.id, event, 1);
+    if (!charge.ok) {
+      blockedByCredit = charge;
+      break;
+    }
+    try {
+      const buffer = await googleDrive.downloadFile(file.id, apiKey);
+      const stored = await storeImageBuffer(event, buffer, file.id);
+      imported.push(stored);
+    } catch (err) {
+      skipped += 1;
+    }
+  }
+
+  if (imported.length === 0 && blockedByCredit) {
+    return res.status(402).json({
+      error: 'insufficient_credit',
+      message: `You need ${formatCents(blockedByCredit.needed)} more in your balance to import photos beyond your plan's free quota.`,
+      needed: blockedByCredit.needed,
+      balance: blockedByCredit.balance,
+    });
+  }
+
+  res.json({
+    imported,
+    skipped,
+    stoppedForBilling: Boolean(blockedByCredit),
+  });
+});
+
+router.post('/events/:id/photos/:photoId/faces', requireAuth, (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const photo = db.prepare('SELECT * FROM photos WHERE id = ? AND event_id = ?').get(req.params.photoId, event.id);
+  if (!photo) return res.status(404).json({ error: 'Photo not found' });
+
+  const numOr0 = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const faces = (Array.isArray(req.body.faces) ? req.body.faces : []).slice(0, 50);
+  const insert = db.prepare(`
+    INSERT INTO faces (photo_id, event_id, descriptor, box_x, box_y, box_w, box_h) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  const tx = db.transaction((rows) => {
+    for (const f of rows) {
+      if (!Array.isArray(f.descriptor) || f.descriptor.length !== 128) continue;
+      if (!f.descriptor.every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
+      const box = f.box || {};
+      insert.run(photo.id, event.id, JSON.stringify(f.descriptor), numOr0(box.x), numOr0(box.y), numOr0(box.width), numOr0(box.height));
+    }
+  });
+  tx(faces);
+
+  db.prepare('UPDATE photos SET faces_processed = 1 WHERE id = ?').run(photo.id);
+  res.json({ ok: true, facesStored: faces.length });
+});
+
+router.post('/events/:id/photos/:photoId/delete', requireAuth, (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  const photo = db.prepare('SELECT * FROM photos WHERE id = ? AND event_id = ?').get(req.params.photoId, event.id);
+  if (!photo) return res.status(404).json({ error: 'Photo not found' });
+
+  db.prepare('DELETE FROM faces WHERE photo_id = ?').run(photo.id);
+  db.prepare('DELETE FROM photos WHERE id = ?').run(photo.id);
+  const filePath = path.join(UPLOADS_DIR, event.slug, photo.filename);
+  fs.unlink(filePath, () => {});
+
+  res.json({ ok: true });
+});
+
+module.exports = router;

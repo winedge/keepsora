@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Pricing — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="page pricing-page">
+    <div class="pricing-head">
+      <h1>Simple, pay-for-what-you-use pricing</h1>
+      <p class="muted">No subscription required to get started. Face recognition is included on every plan — 0% commission if you sell photos to guests.</p>
+    </div>
+
+    <div class="plan-grid">
+      <div class="plan-card">
+        <h2><%= plans.single_event.name %></h2>
+        <p class="muted small"><%= plans.single_event.tagline %></p>
+        <p class="plan-price">Free<span>to start</span></p>
+        <p class="muted small">then $0.03 / photo</p>
+        <ul class="plan-features">
+          <% plans.single_event.features.forEach(f => { %><li><%= f %></li><% }) %>
+        </ul>
+        <% if (currentPlan === 'single_event') { %>
+          <span class="btn btn-ghost btn-block">Your current plan</span>
+        <% } else { %>
+          <a class="btn btn-block" href="<%= currentPlan ? '/dashboard' : '/signup' %>">Start free</a>
+        <% } %>
+      </div>
+
+      <div class="plan-card plan-featured">
+        <span class="plan-badge">Most popular</span>
+        <h2><%= plans.pro.name %></h2>
+        <p class="muted small"><%= plans.pro.tagline %></p>
+        <p class="plan-price">$<%= (plans.pro.monthlyFeeCents / 100).toFixed(0) %><span>/month</span></p>
+        <p class="muted small"><%= plans.pro.includedPhotosPerMonth.toLocaleString() %> photos included, then $0.02/photo</p>
+        <ul class="plan-features">
+          <% plans.pro.features.forEach(f => { %><li><%= f %></li><% }) %>
+        </ul>
+        <% if (currentPlan === 'pro') { %>
+          <span class="btn btn-ghost btn-block">Your current plan</span>
+        <% } else { %>
+          <a class="btn btn-block" href="<%= currentPlan ? '/billing' : '/signup' %>">Upgrade to Pro</a>
+        <% } %>
+      </div>
+
+      <div class="plan-card">
+        <h2><%= plans.enterprise.name %></h2>
+        <p class="muted small"><%= plans.enterprise.tagline %></p>
+        <p class="plan-price">Custom</p>
+        <p class="muted small">&nbsp;</p>
+        <ul class="plan-features">
+          <% plans.enterprise.features.forEach(f => { %><li><%= f %></li><% }) %>
+        </ul>
+        <a class="btn btn-block btn-ghost" href="/enterprise-contact">Contact sales</a>
+      </div>
+    </div>
+
+    <p class="muted small pricing-footnote">
+      Prices are in USD. Face recognition is included on every plan, and there's no commission if
+      you sell photos to guests.
+    </p>
+  </main>
+</body>
+</html>

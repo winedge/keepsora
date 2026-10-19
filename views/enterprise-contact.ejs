@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Contact sales — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="auth-page">
+    <% if (sent) { %>
+      <div class="card auth-card" style="text-align:center">
+        <h1>Thanks!</h1>
+        <p class="muted">We've got your details and someone from our team will reach out shortly.</p>
+        <a href="/" class="btn">Back home</a>
+      </div>
+    <% } else { %>
+      <form class="card auth-card" method="POST" action="/enterprise-contact">
+        <h1>Talk to sales</h1>
+        <p class="muted small">Tell us about your volume and we'll put together a custom Enterprise plan.</p>
+        <% if (error) { %><p class="error"><%= error %></p><% } %>
+        <label>Name<input type="text" name="name" value="<%= name %>" required></label>
+        <label>Work email<input type="email" name="email" value="<%= email %>" required></label>
+        <label>Company<input type="text" name="company" value="<%= company %>"></label>
+        <label>What are you looking for?<textarea name="message" rows="4" style="width:100%;margin-top:6px;padding:11px 13px;background:var(--bg-soft);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;font-family:inherit;"><%= message %></textarea></label>
+        <div class="hp-field" aria-hidden="true">
+          <label>Company website<input type="text" name="company_website" tabindex="-1" autocomplete="off"></label>
+        </div>
+        <button type="submit" class="btn btn-block">Send</button>
+      </form>
+    <% } %>
+  </main>
+</body>
+</html>

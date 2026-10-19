@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Log in — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="auth-page">
+    <form class="card auth-card" method="POST" action="/login">
+      <h1>Welcome back</h1>
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
+      <label>Email<input type="email" name="email" value="<%= email %>" required></label>
+      <label>Password<input type="password" name="password" required></label>
+      <button type="submit" class="btn btn-block">Log in</button>
+      <p class="auth-switch">New here? <a href="/signup">Create a free account</a></p>
+    </form>
+  </main>
+</body>
+</html>

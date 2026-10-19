@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Keepsora — Share event photos with face search</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <h1>Share event photos.<br>Let everyone <span class="highlight">find their own</span> with a selfie.</h1>
+        <p class="hero-sub">Upload your event gallery once. Guests take a selfie and instantly see only the photos they're in — no app install, no scrolling through hundreds of pictures.</p>
+        <div class="hero-cta">
+          <a href="/signup" class="btn btn-lg">Create a free event</a>
+          <a href="#how" class="btn btn-lg btn-ghost">See how it works</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="how">
+      <h2>How it works</h2>
+      <div class="how-grid">
+        <div class="how-card">
+          <div class="how-num">1</div>
+          <h3>Upload the gallery</h3>
+          <p>Create an event and bulk-upload every photo from the day. We detect every face automatically in your browser.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">2</div>
+          <h3>Share one link</h3>
+          <p>Send guests a single gallery link. Add a password if the event is private.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-num">3</div>
+          <h3>Guests take a selfie</h3>
+          <p>Face recognition runs right in the browser and instantly surfaces every photo that guest appears in.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="usecases">
+      <h2>Built for any event</h2>
+      <div class="usecases-grid">
+        <div class="usecase">💍 Weddings</div>
+        <div class="usecase">🏢 Corporate events</div>
+        <div class="usecase">🏃 Marathons &amp; races</div>
+        <div class="usecase">🎉 Parties &amp; clubs</div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <h2>Your guests shouldn't have to scroll through 2,000 photos to find themselves.</h2>
+      <a href="/signup" class="btn btn-lg">Get started — it's free</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© <%= new Date().getFullYear() %> Keepsora. Face matching runs entirely in your browser.</p>
+  </footer>
+</body>
+</html>

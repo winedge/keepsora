@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title><%= event.title %> — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="auth-page">
+    <form class="card auth-card" method="POST" action="/e/<%= event.slug %>/unlock">
+      <h1><%= event.title %></h1>
+      <p class="muted">🔒 This gallery is password protected.</p>
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
+      <label>Password<input type="text" name="password" autofocus required></label>
+      <button type="submit" class="btn btn-block">View gallery</button>
+    </form>
+  </main>
+</body>
+</html>

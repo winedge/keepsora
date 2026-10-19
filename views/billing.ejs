@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Billing — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="page">
+    <div class="page-head">
+      <h1>Billing</h1>
+    </div>
+
+    <% if (notice) { %><p class="notice"><%= notice %></p><% } %>
+    <% if (error) { %><p class="error"><%= error %></p><% } %>
+
+    <div class="billing-grid">
+      <div class="card">
+        <p class="label">Current plan</p>
+        <h2 class="billing-plan-name"><%= plans[user.plan].name %></h2>
+        <p class="muted small"><%= plans[user.plan].tagline %></p>
+
+        <% if (usage.plan === 'single_event') { %>
+          <div class="usage-bar">
+            <div class="usage-bar-fill" style="width: <%= Math.min(100, Math.round((usage.used / usage.included) * 100)) %>%"></div>
+          </div>
+          <p class="muted small"><%= usage.used %> / <%= usage.included %> free photos used on your most recent event. Extra photos are $<%= (usage.overagePerPhotoCents / 100).toFixed(2) %> each, billed from your balance below.</p>
+        <% } else if (usage.plan === 'pro') { %>
+          <div class="usage-bar">
+            <div class="usage-bar-fill" style="width: <%= Math.min(100, Math.round((usage.used / usage.included) * 100)) %>%"></div>
+          </div>
+          <p class="muted small"><%= usage.used.toLocaleString() %> / <%= usage.included.toLocaleString() %> photos used this billing period. Extra photos are $<%= (usage.overagePerPhotoCents / 100).toFixed(2) %> each.</p>
+        <% } else { %>
+          <p class="muted small">Unlimited usage on Enterprise.</p>
+        <% } %>
+
+        <div class="plan-switch-row">
+          <% if (user.plan !== 'pro') { %>
+            <form method="POST" action="/billing/upgrade" class="inline-form">
+              <button type="submit" class="btn btn-sm">Upgrade to Pro — $<%= (plans.pro.monthlyFeeCents / 100).toFixed(0) %>/mo<%= stripeConfigured ? ' via Stripe' : '' %></button>
+            </form>
+          <% } else { %>
+            <form method="POST" action="/billing/downgrade" class="inline-form">
+              <button type="submit" class="btn btn-sm btn-ghost">Move back to Single Event</button>
+            </form>
+          <% } %>
+          <a class="btn btn-sm btn-ghost" href="/pricing">Compare plans</a>
+          <% if (stripeConfigured && user.stripe_customer_id) { %>
+            <a class="btn btn-sm btn-ghost" href="/billing/portal">Manage billing on Stripe</a>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Wallet balance</p>
+        <p class="wallet-balance"><%= formatCents(user.credit_balance_cents) %></p>
+        <p class="muted small">Used automatically to cover photo overage and plan charges.</p>
+
+        <form method="POST" action="/billing/topup" class="topup-form">
+          <div class="topup-presets">
+            <% presets.forEach((p, i) => { %>
+              <label class="topup-chip">
+                <input type="radio" name="preset" value="<%= p %>" data-amount="<%= p %>" <%= i === 0 ? 'checked' : '' %>>
+                <%= formatCents(p) %>
+              </label>
+            <% }) %>
+          </div>
+          <label class="topup-custom">Or a custom amount ($)
+            <input type="number" id="customAmount" min="1" max="1000" step="1" placeholder="e.g. 15">
+          </label>
+          <input type="hidden" name="amountCents" id="amountCents" value="<%= presets[0] %>">
+
+          <% if (stripeConfigured) { %>
+            <p class="muted small">🔒 You'll be redirected to Stripe to pay securely — we never see or store your card details.</p>
+          <% } else { %>
+            <div class="fake-card-row">
+              <input type="text" placeholder="Card number" value="4242 4242 4242 4242" maxlength="19" inputmode="numeric">
+              <input type="text" placeholder="MM / YY" value="12 / 34" maxlength="7">
+              <input type="text" placeholder="CVC" value="123" maxlength="4">
+            </div>
+            <p class="muted small">⚠️ Demo billing — this form doesn't send or store real card details, and no real charge occurs.</p>
+          <% } %>
+          <button type="submit" class="btn btn-block">Add funds<%= stripeConfigured ? ' via Stripe' : '' %></button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="label">Billing history</p>
+      <% if (ledger.length === 0) { %>
+        <p class="muted">No charges yet.</p>
+      <% } else { %>
+        <table class="ledger-table">
+          <thead>
+            <tr><th>Date</th><th>Description</th><th>Amount</th></tr>
+          </thead>
+          <tbody>
+            <% ledger.forEach(l => { %>
+              <tr>
+                <td><%= l.created_at %></td>
+                <td><%= l.description %></td>
+                <td class="<%= l.amount_cents < 0 ? 'amount-neg' : 'amount-pos' %>"><%= formatCents(l.amount_cents) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </main>
+
+  <script src="/js/billing.js"></script>
+</body>
+</html>

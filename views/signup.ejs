@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Sign up — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <%- include('partials/nav') %>
+  <main class="auth-page">
+    <form class="card auth-card" method="POST" action="/signup">
+      <h1>Create your account</h1>
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
+      <label>Name<input type="text" name="name" value="<%= name %>" required></label>
+      <label>Email<input type="email" name="email" value="<%= email %>" required></label>
+      <label>Password<input type="password" name="password" minlength="8" required></label>
+      <label class="consent-label">
+        <input type="checkbox" name="agreeToTerms" required>
+        <span>I confirm I have the right to share these photos, and I'll let guests know their
+        photos will be processed with face recognition before I upload anything. See the
+        <a href="/terms" target="_blank">Terms</a>.</span>
+      </label>
+      <div class="hp-field" aria-hidden="true">
+        <label>Company website<input type="text" name="company_website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <% if (turnstileSiteKey) { %>
+        <div class="cf-turnstile" data-sitekey="<%= turnstileSiteKey %>"></div>
+      <% } %>
+      <button type="submit" class="btn btn-block">Sign up</button>
+      <p class="auth-switch">Already have an account? <a href="/login">Log in</a></p>
+    </form>
+  </main>
+  <% if (turnstileSiteKey) { %>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <% } %>
+</body>
+</html>

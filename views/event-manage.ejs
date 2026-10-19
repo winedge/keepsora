@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title><%= event.title %> — Keepsora</title>
+  <%- include('partials/head') %>
+</head>
+<body data-event-id="<%= event.id %>">
+  <%- include('partials/nav') %>
+  <main class="page">
+    <div class="page-head">
+      <div>
+        <h1><%= event.title %></h1>
+        <p class="muted"><%= event.event_date || 'No date set' %></p>
+      </div>
+    </div>
+
+    <p class="error billing-banner" id="billingBanner" hidden></p>
+
+    <div class="card">
+      <p class="label">Plan usage</p>
+      <% if (usage.plan === 'single_event') { %>
+        <div class="usage-bar">
+          <div class="usage-bar-fill" style="width: <%= Math.min(100, Math.round((usage.used / usage.included) * 100)) %>%"></div>
+        </div>
+        <p class="muted small">
+          <%= usage.used %> / <%= usage.included %> free photos used on this event.
+          Extra photos are $<%= (usage.overagePerPhotoCents / 100).toFixed(2) %> each, billed from your
+          <a href="/billing">wallet balance</a>.
+        </p>
+      <% } else if (usage.plan === 'pro') { %>
+        <div class="usage-bar">
+          <div class="usage-bar-fill" style="width: <%= Math.min(100, Math.round((usage.used / usage.included) * 100)) %>%"></div>
+        </div>
+        <p class="muted small"><%= usage.used.toLocaleString() %> / <%= usage.included.toLocaleString() %> photos used this billing period (Pro plan).</p>
+      <% } else { %>
+        <p class="muted small">Unlimited usage on your Enterprise plan.</p>
+      <% } %>
+    </div>
+
+    <div class="card share-card">
+      <p class="label">Guest gallery link</p>
+      <div class="share-row">
+        <input type="text" readonly id="shareLink" value="<%= host %>/e/<%= event.slug %>">
+        <button class="btn btn-sm" id="copyLinkBtn">Copy</button>
+        <a class="btn btn-sm btn-ghost" href="/e/<%= event.slug %>" target="_blank">Open ↗</a>
+      </div>
+      <% if (event.guest_password) { %>
+        <p class="muted small">🔒 Guests will need the password: <strong><%= event.guest_password %></strong></p>
+      <% } else { %>
+        <p class="muted small">This gallery is open to anyone with the link.</p>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <p class="label">Upload photos</p>
+      <div id="dropzone" class="dropzone">
+        <p>Drag &amp; drop photos here, or</p>
+        <label class="btn btn-sm">
+          Choose files
+          <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        </label>
+        <p class="muted small" id="modelStatus">Loading face recognition models…</p>
+      </div>
+      <ul id="uploadList" class="upload-list"></ul>
+    </div>
+
+    <div class="card">
+      <p class="label">Sync from Google Drive</p>
+      <p class="muted small">Paste a link to a public Google Drive folder ("Anyone with the link can view") and we'll pull in every photo from it.</p>
+      <% if (!driveConfigured) { %>
+        <p class="muted small">⚠️ Google Drive sync isn't configured on this server yet — an administrator needs to set a <code>GOOGLE_API_KEY</code> environment variable with the Drive API enabled. The form below will show a clear error until then.</p>
+      <% } %>
+      <form id="driveForm" class="drive-sync-row">
+        <input type="text" id="driveUrlInput" placeholder="https://drive.google.com/drive/folders/...">
+        <button type="submit" class="btn btn-sm">Sync</button>
+      </form>
+      <p class="muted small" id="driveStatus"></p>
+    </div>
+
+    <div class="card">
+      <p class="label" id="photoCountLabel"><%= photos.length %> photo<%= photos.length === 1 ? '' : 's' %> in this event</p>
+      <div class="photo-grid" id="photoGrid">
+        <% photos.forEach(p => { %>
+          <div class="photo-tile" data-photo-id="<%= p.id %>">
+            <img src="/uploads/<%= event.slug %>/<%= p.filename %>" loading="lazy">
+            <span class="face-badge"><%= p.face_count %> face<%= p.face_count === 1 ? '' : 's' %></span>
+            <button class="delete-btn" data-id="<%= p.id %>" title="Delete photo">✕</button>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </main>
+
+  <script src="/vendor/face-api.min.js"></script>
+  <script src="/js/upload.js"></script>
+</body>
+</html>
