@@ -22,6 +22,13 @@
   const lightboxDownload = document.getElementById('lightboxDownload');
   const lightboxClose = document.getElementById('lightboxClose');
 
+  const selectModeBtn = document.getElementById('selectModeBtn');
+  const selectionBar = document.getElementById('selectionBar');
+  const selectionCount = document.getElementById('selectionCount');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+  const cancelSelectBtn = document.getElementById('cancelSelectBtn');
+
   const reportToggleBtn = document.getElementById('reportToggleBtn');
   const reportForm = document.getElementById('reportForm');
   const reportCancelBtn = document.getElementById('reportCancelBtn');
@@ -97,8 +104,38 @@
     setStatus('Ready — take or upload a selfie to find your photos.', 'ready');
   }
 
+  let selectMode = false;
+  const selectedIds = new Set();
+
+  function updateSelectionBar() {
+    selectionCount.textContent = `${selectedIds.size} selected`;
+    downloadSelectedBtn.disabled = selectedIds.size === 0;
+  }
+
+  function setSelectMode(on) {
+    selectMode = on;
+    photoGrid.classList.toggle('select-mode', on);
+    selectionBar.hidden = !on;
+    selectModeBtn.textContent = on ? 'Cancel selecting' : 'Select photos';
+    if (!on) {
+      selectedIds.clear();
+      photoGrid.querySelectorAll('.photo-tile.selected').forEach((t) => t.classList.remove('selected'));
+    }
+    updateSelectionBar();
+  }
+
+  function toggleTileSelected(div, id) {
+    const nowSelected = !selectedIds.has(id);
+    if (nowSelected) selectedIds.add(id);
+    else selectedIds.delete(id);
+    div.classList.toggle('selected', nowSelected);
+    updateSelectionBar();
+  }
+
   function renderPhotos(photos) {
     photoGrid.innerHTML = '';
+    selectedIds.clear();
+    updateSelectionBar();
     if (photos.length === 0) {
       photoGrid.innerHTML = '<p class="muted">No photos yet.</p>';
       return;
@@ -107,13 +144,22 @@
     for (const p of photos) {
       const div = document.createElement('div');
       div.className = 'photo-tile';
+      div.dataset.photoId = p.id;
       const isFav = favs.includes(p.id);
       const dims = p.width && p.height ? ` width="${p.width}" height="${p.height}"` : '';
       div.innerHTML = `
         <img src="${p.thumbUrl || p.url}" loading="lazy"${dims}>
+        <span class="select-check"></span>
         <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${p.id}" title="Favorite">★</button>
       `;
-      div.querySelector('img').addEventListener('click', () => openLightbox(p.url));
+      div.addEventListener('click', (e) => {
+        if (selectMode) {
+          e.stopPropagation();
+          toggleTileSelected(div, p.id);
+        } else {
+          openLightbox(p.url);
+        }
+      });
       div.querySelector('.fav-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         const active = toggleFav(p.id);
@@ -279,6 +325,54 @@
     clearMatchBtn.hidden = true;
     setStatus('Ready — take or upload a selfie to find your photos.', 'ready');
     loadAllPhotos();
+  });
+
+  selectModeBtn.addEventListener('click', () => setSelectMode(!selectMode));
+  cancelSelectBtn.addEventListener('click', () => setSelectMode(false));
+
+  selectAllBtn.addEventListener('click', () => {
+    photoGrid.querySelectorAll('.photo-tile').forEach((div) => {
+      const id = Number(div.dataset.photoId);
+      if (!selectedIds.has(id)) {
+        selectedIds.add(id);
+        div.classList.add('selected');
+      }
+    });
+    updateSelectionBar();
+  });
+
+  downloadSelectedBtn.addEventListener('click', async () => {
+    if (selectedIds.size === 0) return;
+    downloadSelectedBtn.disabled = true;
+    const originalText = downloadSelectedBtn.textContent;
+    downloadSelectedBtn.textContent = 'Preparing download…';
+
+    try {
+      const res = await fetch(`/e/${SLUG}/download-zip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [...selectedIds] }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || "Couldn't prepare that download. Please try again.");
+        return;
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `${SLUG}-photos.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      alert('Error preparing download: ' + err.message);
+    } finally {
+      downloadSelectedBtn.disabled = selectedIds.size === 0;
+      downloadSelectedBtn.textContent = originalText;
+    }
   });
 
   loadModels().catch((err) => {

@@ -40,8 +40,20 @@
     </div>
 
     <div class="card">
-      <p class="label" id="gridLabel">All photos</p>
+      <div class="grid-head">
+        <p class="label" id="gridLabel">All photos</p>
+        <button type="button" class="btn btn-sm btn-ghost" id="selectModeBtn">Select photos</button>
+      </div>
       <div class="photo-grid" id="photoGrid"></div>
+    </div>
+
+    <div class="selection-bar" id="selectionBar" hidden>
+      <span id="selectionCount">0 selected</span>
+      <div class="selection-actions">
+        <button type="button" class="btn btn-sm btn-ghost" id="selectAllBtn">Select all</button>
+        <button type="button" class="btn btn-sm" id="downloadSelectedBtn">Download selected</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="cancelSelectBtn">Cancel</button>
+      </div>
     </div>
 
     <p class="muted small report-link-row">

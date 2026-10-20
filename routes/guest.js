@@ -1,10 +1,15 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const archiver = require('archiver');
 const db = require('../db');
 const { euclideanDistance, MATCH_THRESHOLD } = require('../utils/match');
 const { safeEqual } = require('../utils/safeCompare');
-const { guestUnlockLimiter, matchLimiter, reportLimiter } = require('../middleware/rateLimiters');
+const { guestUnlockLimiter, matchLimiter, reportLimiter, zipDownloadLimiter } = require('../middleware/rateLimiters');
 
 const router = express.Router();
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+const MAX_ZIP_PHOTOS = 300;
 
 function findEvent(slug) {
   // Hide galleries belonging to a suspended organizer — same 404 guests would
@@ -110,6 +115,42 @@ router.post('/api/events/:slug/match', matchLimiter, (req, res) => {
     }));
 
   res.json({ matches, threshold: MATCH_THRESHOLD });
+});
+
+router.post('/e/:slug/download-zip', zipDownloadLimiter, (req, res) => {
+  const event = findEvent(req.params.slug);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!isUnlocked(req, event)) return res.status(403).json({ error: 'locked' });
+
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.filter((n) => Number.isInteger(n)).slice(0, MAX_ZIP_PHOTOS) : [];
+  if (ids.length === 0) return res.status(400).json({ error: 'no_photos', message: 'No photos selected.' });
+
+  const placeholders = ids.map(() => '?').join(',');
+  const photos = db.prepare(`
+    SELECT id, filename FROM photos WHERE event_id = ? AND id IN (${placeholders})
+  `).all(event.id, ...ids);
+
+  if (photos.length === 0) return res.status(404).json({ error: 'not_found', message: 'None of those photos were found.' });
+
+  res.attachment(`${event.slug}-photos.zip`);
+  res.type('application/zip');
+
+  const archive = archiver('zip', { zlib: { level: 6 } });
+  archive.on('error', (err) => {
+    console.error('Zip download failed:', err);
+    if (!res.headersSent) res.status(500);
+    res.end();
+  });
+  archive.pipe(res);
+
+  for (const photo of photos) {
+    const filePath = path.join(UPLOADS_DIR, event.slug, photo.filename);
+    if (fs.existsSync(filePath)) {
+      archive.file(filePath, { name: photo.filename });
+    }
+  }
+
+  archive.finalize();
 });
 
 const REPORT_REASONS = new Set(['inappropriate', 'no_consent', 'spam_or_scam', 'other']);

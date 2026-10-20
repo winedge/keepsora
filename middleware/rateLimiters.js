@@ -52,6 +52,10 @@ const contactFormLimiter = rateLimit({ ...base, windowMs: 60 * 60 * 1000, limit:
 // Guests reporting an event gallery as inappropriate/misused.
 const reportLimiter = rateLimit({ ...base, windowMs: 60 * 60 * 1000, limit: 10 });
 
+// Zipping and streaming a batch of full-size photos is real CPU/bandwidth
+// cost per request, unlike most guest endpoints — keep it tight.
+const zipDownloadLimiter = rateLimit({ ...base, windowMs: 10 * 60 * 1000, limit: 10 });
+
 module.exports = {
   globalLimiter,
   authLimiter,
@@ -64,4 +68,5 @@ module.exports = {
   billingLimiter,
   contactFormLimiter,
   reportLimiter,
+  zipDownloadLimiter,
 };
