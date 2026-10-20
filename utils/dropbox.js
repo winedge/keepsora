@@ -50,7 +50,12 @@ async function listImageFiles(sharedUrl, accessToken) {
   for (;;) {
     for (const entry of data.entries || []) {
       if (entry['.tag'] === 'file' && IMAGE_EXT_RE.test(entry.name)) {
-        files.push({ id: entry.id, name: entry.name, path: entry.path_lower, size: entry.size });
+        // Listing a folder shared by someone else doesn't include path_lower/
+        // path_display at all (you have no "real" path to it, only access via
+        // the link) — get_shared_link_file still wants a path relative to the
+        // share root, so fall back to building one from the (flat, top-level
+        // only, since we don't list recursively) file name.
+        files.push({ id: entry.id, name: entry.name, path: entry.path_lower || `/${entry.name}`, size: entry.size });
       }
     }
     if (!data.has_more || files.length >= MAX_FILES) break;
