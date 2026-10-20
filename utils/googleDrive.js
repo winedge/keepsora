@@ -5,7 +5,12 @@
 // Google Cloud project.
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
-const MAX_FILES = 300; // safety cap per sync
+// Per-sync cap — see the matching comment in utils/dropbox.js for why this
+// isn't larger: the import loop processes files one at a time in a single
+// HTTP request, so a few hundred would run past any reasonable proxy timeout.
+// Already-imported files are skipped on a re-sync, so a bigger folder just
+// needs "Sync" clicked again to resume.
+const MAX_FILES = 40;
 
 const FOLDER_URL_PATTERNS = [
   /\/folders\/([a-zA-Z0-9_-]+)/, // drive.google.com/drive/folders/<id>
