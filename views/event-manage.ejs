@@ -92,6 +92,7 @@
 
     <div class="card">
       <p class="label" id="photoCountLabel"><%= photos.length %> photo<%= photos.length === 1 ? '' : 's' %> in this event</p>
+      <p class="muted small" id="faceDetectionStatus" hidden></p>
       <div class="photo-grid" id="photoGrid">
         <% photos.forEach(p => { %>
           <div class="photo-tile" data-photo-id="<%= p.id %>">

@@ -8,6 +8,7 @@
   const copyBtn = document.getElementById('copyLinkBtn');
   const shareLink = document.getElementById('shareLink');
   const photoCountLabel = document.getElementById('photoCountLabel');
+  const faceDetectionStatus = document.getElementById('faceDetectionStatus');
   const billingBanner = document.getElementById('billingBanner');
 
   const driveForm = document.getElementById('driveForm');
@@ -40,7 +41,15 @@
     ]);
     modelsReady = true;
     modelStatus.textContent = 'Ready — face detection will run automatically on upload.';
-    processPendingPhotos();
+    runFaceDetection(faceDetectionStatus, 'Detecting faces…').then((remaining) => {
+      if (!faceDetectionStatus) return;
+      if (remaining === 0) {
+        faceDetectionStatus.hidden = true;
+      } else {
+        faceDetectionStatus.hidden = false;
+        faceDetectionStatus.textContent = `Face detection is still working through ${remaining} photo${remaining === 1 ? '' : 's'} — reload the page to keep it going.`;
+      }
+    });
   }
 
   function addListItem(name) {
@@ -283,7 +292,11 @@
           return;
         }
 
-        await waitForFaceDetection(job, statusEl);
+        const remaining = await runFaceDetection(statusEl, 'Imported — now detecting faces…');
+        const importedLine = `${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}`;
+        statusEl.textContent = remaining === 0
+          ? `Done — ${importedLine}, faces detected.`
+          : `${importedLine}. Face detection is still working through ${remaining} photo${remaining === 1 ? '' : 's'} — reload the page to keep it going.`;
         return;
       }
     } catch (err) {
@@ -293,14 +306,14 @@
     }
   }
 
-  // The import itself finishing just means every photo landed on disk —
-  // face detection (processPendingPhotos, which runs in-browser against each
-  // unprocessed photo) still has to work through the whole batch afterward,
-  // which for dozens of photos can take a while. Keep polling and showing
-  // progress until nothing's left, instead of declaring victory the moment
-  // the import's HTTP side is done and leaving the page looking stalled.
-  async function waitForFaceDetection(job, statusEl) {
-    const MAX_PASSES = 60; // ~2.5 min of 2.5s ticks before giving up and saying so
+  // Repeatedly checks /unprocessed-photos and runs processPendingPhotos until
+  // nothing's left (or it's been trying for a while), updating statusEl with
+  // a live count as it goes. Shared by the page-load pass (faceDetectionStatus)
+  // and the post-sync pass (the Drive/Dropbox status line) — face detection
+  // runs in-browser, one photo at a time, so without this it can take a
+  // couple of minutes with no visible sign anything's still happening.
+  async function runFaceDetection(statusEl, prefix) {
+    const MAX_PASSES = 60; // ~2.5 min of 2.5s-ish ticks before giving up and saying so
     let remaining = Infinity;
 
     for (let pass = 0; pass < MAX_PASSES; pass++) {
@@ -309,14 +322,14 @@
       remaining = (data.photos || []).length;
       if (remaining === 0) break;
 
-      statusEl.textContent = `Imported — now detecting faces… ${remaining} photo${remaining === 1 ? '' : 's'} left.`;
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = `${prefix} ${remaining} photo${remaining === 1 ? '' : 's'} left.`;
+      }
       await processPendingPhotos();
     }
 
-    const importedLine = `${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}`;
-    statusEl.textContent = remaining === 0
-      ? `Done — ${importedLine}, faces detected.`
-      : `${importedLine}. Face detection is still working through ${remaining} photo${remaining === 1 ? '' : 's'} — reload the page to keep it going.`;
+    return remaining;
   }
 
   loadModels().catch((err) => {
