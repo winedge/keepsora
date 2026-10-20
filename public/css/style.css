@@ -166,6 +166,18 @@ a { color: inherit; text-decoration: none; }
 .notice { color: #4ade80; background: rgba(74, 222, 128, 0.1); padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
 .billing-banner a { text-decoration: underline; font-weight: 600; }
 
+.detection-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(124, 92, 255, 0.12); color: #c9c2ff;
+  border: 1px solid rgba(124, 92, 255, 0.3);
+  padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px;
+}
+.detection-banner .spinner {
+  flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(201, 194, 255, 0.3); border-top-color: #c9c2ff;
+  animation: selfie-spin 0.8s linear infinite;
+}
+
 /* Honeypot: off-screen (not display:none, which some bots skip), never
    focusable or announced by assistive tech. Real users never see or fill it. */
 .hp-field {

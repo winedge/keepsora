@@ -8,6 +8,7 @@
   const copyBtn = document.getElementById('copyLinkBtn');
   const shareLink = document.getElementById('shareLink');
   const photoCountLabel = document.getElementById('photoCountLabel');
+  const faceDetectionBanner = document.getElementById('faceDetectionBanner');
   const faceDetectionStatus = document.getElementById('faceDetectionStatus');
   const billingBanner = document.getElementById('billingBanner');
 
@@ -41,15 +42,7 @@
     ]);
     modelsReady = true;
     modelStatus.textContent = 'Ready — face detection will run automatically on upload.';
-    runFaceDetection(faceDetectionStatus, 'Detecting faces…').then((remaining) => {
-      if (!faceDetectionStatus) return;
-      if (remaining === 0) {
-        faceDetectionStatus.hidden = true;
-      } else {
-        faceDetectionStatus.hidden = false;
-        faceDetectionStatus.textContent = `Face detection is still working through ${remaining} photo${remaining === 1 ? '' : 's'} — reload the page to keep it going.`;
-      }
-    });
+    startDetectionPoller();
   }
 
   function addListItem(name) {
@@ -119,7 +112,7 @@
 
   let pendingInFlight = false;
   // `photos`, when given, skips the fetch — callers that already have a
-  // fresh unprocessed-photos list (runFaceDetection's polling loop) pass it
+  // fresh unprocessed-photos list (detectionPollTick's polling loop) pass it
   // through instead of hitting the same endpoint twice per tick.
   async function processPendingPhotos(photos) {
     if (!modelsReady || pendingInFlight) return;
@@ -300,11 +293,7 @@
           return;
         }
 
-        const remaining = await runFaceDetection(statusEl, 'Imported — now detecting faces…');
-        const importedLine = `${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}`;
-        statusEl.textContent = remaining === 0
-          ? `Done — ${importedLine}, faces detected.`
-          : `${importedLine}. Face detection is still working through ${remaining} photo${remaining === 1 ? '' : 's'} — reload the page to keep it going.`;
+        statusEl.textContent = `Done — ${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}. Detecting faces in the background…`;
         return;
       }
     } catch (err) {
@@ -314,30 +303,36 @@
     }
   }
 
-  // Repeatedly checks /unprocessed-photos and runs processPendingPhotos until
-  // nothing's left (or it's been trying for a while), updating statusEl with
-  // a live count as it goes. Shared by the page-load pass (faceDetectionStatus)
-  // and the post-sync pass (the Drive/Dropbox status line) — face detection
-  // runs in-browser, one photo at a time, so without this it can take a
-  // couple of minutes with no visible sign anything's still happening.
-  async function runFaceDetection(statusEl, prefix) {
-    const MAX_PASSES = 60; // ~2.5 min of 2.5s-ish ticks before giving up and saying so
-    let remaining = Infinity;
+  // Persistent background poller for the top banner — runs for as long as the
+  // page is open, not a fixed number of tries, so it never needs a reload to
+  // "keep going": it naturally keeps picking up newly-synced photos too,
+  // since it's just checking the same unprocessed-photos list every tick
+  // rather than a one-shot pass taken right after a particular sync.
+  let detectionPollTimer = null;
 
-    for (let pass = 0; pass < MAX_PASSES; pass++) {
+  async function detectionPollTick() {
+    let remaining = 0;
+    try {
       const res = await fetch(`/events/${EVENT_ID}/unprocessed-photos`);
       const data = await res.json();
       remaining = (data.photos || []).length;
-      if (remaining === 0) break;
 
-      if (statusEl) {
-        statusEl.hidden = false;
-        statusEl.textContent = `${prefix} ${remaining} photo${remaining === 1 ? '' : 's'} left.`;
+      if (remaining > 0) {
+        if (faceDetectionBanner) faceDetectionBanner.hidden = false;
+        if (faceDetectionStatus) faceDetectionStatus.textContent = `Detecting faces… ${remaining} photo${remaining === 1 ? '' : 's'} left.`;
+        await processPendingPhotos(data.photos);
+      } else if (faceDetectionBanner) {
+        faceDetectionBanner.hidden = true;
       }
-      await processPendingPhotos(data.photos);
+    } catch {
+      // transient network hiccup — the next tick retries on its own
     }
+  }
 
-    return remaining;
+  function startDetectionPoller() {
+    if (detectionPollTimer) return;
+    detectionPollTick();
+    detectionPollTimer = setInterval(detectionPollTick, 3000);
   }
 
   loadModels().catch((err) => {
