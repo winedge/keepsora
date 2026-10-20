@@ -276,8 +276,6 @@
           continue;
         }
 
-        await processPendingPhotos();
-
         if (job.status === 'blocked_by_billing') {
           showBillingBanner("You've used up your plan's free photo quota, so the sync stopped partway through.");
         } else if (job.status === 'error') {
@@ -285,7 +283,7 @@
           return;
         }
 
-        statusEl.textContent = `Done — ${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}.`;
+        await waitForFaceDetection(job, statusEl);
         return;
       }
     } catch (err) {
@@ -293,6 +291,32 @@
     } finally {
       button.disabled = false;
     }
+  }
+
+  // The import itself finishing just means every photo landed on disk —
+  // face detection (processPendingPhotos, which runs in-browser against each
+  // unprocessed photo) still has to work through the whole batch afterward,
+  // which for dozens of photos can take a while. Keep polling and showing
+  // progress until nothing's left, instead of declaring victory the moment
+  // the import's HTTP side is done and leaving the page looking stalled.
+  async function waitForFaceDetection(job, statusEl) {
+    const MAX_PASSES = 60; // ~2.5 min of 2.5s ticks before giving up and saying so
+    let remaining = Infinity;
+
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+      const res = await fetch(`/events/${EVENT_ID}/unprocessed-photos`);
+      const data = await res.json();
+      remaining = (data.photos || []).length;
+      if (remaining === 0) break;
+
+      statusEl.textContent = `Imported — now detecting faces… ${remaining} photo${remaining === 1 ? '' : 's'} left.`;
+      await processPendingPhotos();
+    }
+
+    const importedLine = `${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}`;
+    statusEl.textContent = remaining === 0
+      ? `Done — ${importedLine}, faces detected.`
+      : `${importedLine}. Face detection is still working through ${remaining} photo${remaining === 1 ? '' : 's'} — reload the page to keep it going.`;
   }
 
   loadModels().catch((err) => {
