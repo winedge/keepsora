@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <title>Admin — Keepsora</title>
+  <title>Admin - Keepsora</title>
   <%- include('partials/head') %>
 </head>
 <body>
@@ -32,7 +32,7 @@
               <tr>
                 <td><a href="/e/<%= r.event_slug %>" target="_blank"><%= r.event_title %></a></td>
                 <td><%= r.reason %></td>
-                <td><%= r.details || '—' %></td>
+                <td><%= r.details || '-' %></td>
                 <td><%= r.status %></td>
                 <td><%= r.created_at %></td>
                 <td>
@@ -116,8 +116,8 @@
               <tr>
                 <td><%= l.name %></td>
                 <td><%= l.email %></td>
-                <td><%= l.company || '—' %></td>
-                <td><%= l.message || '—' %></td>
+                <td><%= l.company || '-' %></td>
+                <td><%= l.message || '-' %></td>
                 <td><%= l.created_at %></td>
               </tr>
             <% }) %>

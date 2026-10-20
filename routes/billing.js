@@ -20,8 +20,8 @@ const NOTICES = {
   already_pro: () => 'You are already on the Pro plan.',
   upgraded: () => 'Welcome to Pro! Unlimited events are now unlocked.',
   downgraded: () => 'Moved back to the Single Event plan.',
-  stripe_success: () => "Payment received — this can take a few seconds to show up below while Stripe confirms it.",
-  stripe_cancelled: () => 'Checkout was cancelled — nothing was charged.',
+  stripe_success: () => "Payment received - this can take a few seconds to show up below while Stripe confirms it.",
+  stripe_cancelled: () => 'Checkout was cancelled - nothing was charged.',
 };
 const ERRORS = {
   invalid_amount: () => 'Enter a valid amount (between $0.01 and $1,000).',
@@ -91,7 +91,7 @@ router.post('/billing/topup', requireAuth, billingLimiter, async (req, res) => {
     userId: req.user.id,
     type: 'topup',
     amountCents,
-    description: `Added funds (demo checkout, no real charge) — ${formatCents(amountCents)}`,
+    description: `Added funds (demo checkout, no real charge) - ${formatCents(amountCents)}`,
   });
 
   res.redirect(`/billing?notice=topup_ok&amt=${amountCents}`);
@@ -132,7 +132,7 @@ router.post('/billing/upgrade', requireAuth, billingLimiter, async (req, res) =>
     userId: user.id,
     type: 'subscription_charge',
     amountCents: -plan.monthlyFeeCents,
-    description: `Upgraded to Pro — first month (${formatCents(plan.monthlyFeeCents)})`,
+    description: `Upgraded to Pro - first month (${formatCents(plan.monthlyFeeCents)})`,
   });
 
   res.redirect('/billing?notice=upgraded');

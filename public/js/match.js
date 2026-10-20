@@ -53,7 +53,7 @@
         }),
       });
       if (res.ok) {
-        reportStatus.textContent = 'Thanks — our team will take a look.';
+        reportStatus.textContent = 'Thanks - our team will take a look.';
         reportForm.querySelector('button[type=submit]').disabled = true;
       } else {
         reportStatus.textContent = 'Something went wrong. Please try again later.';
@@ -101,7 +101,7 @@
       faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
     ]);
     modelsReady = true;
-    setStatus('Ready — take or upload a selfie to find your photos.', 'ready');
+    setStatus('Ready - take or upload a selfie to find your photos.', 'ready');
   }
 
   let selectMode = false;
@@ -323,7 +323,7 @@
     selfiePreview.hidden = true;
     selfieAvatarIcon.hidden = false;
     clearMatchBtn.hidden = true;
-    setStatus('Ready — take or upload a selfie to find your photos.', 'ready');
+    setStatus('Ready - take or upload a selfie to find your photos.', 'ready');
     loadAllPhotos();
   });
 

@@ -256,7 +256,7 @@ router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (
   const toImport = files.filter((f) => !alreadyImported.has(f.id));
 
   if (toImport.length === 0) {
-    return res.json({ started: false, skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
+    return res.json({ started: false, skipped: files.length, message: 'Nothing new to import - all photos in that folder are already synced.' });
   }
 
   const job = syncJobs.start('drive', event.id, toImport.length);
@@ -312,7 +312,7 @@ router.post('/events/:id/dropbox-import', requireAuth, dropboxImportLimiter, asy
   const toImport = files.filter((f) => !alreadyImported.has(f.id));
 
   if (toImport.length === 0) {
-    return res.json({ started: false, skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
+    return res.json({ started: false, skipped: files.length, message: 'Nothing new to import - all photos in that folder are already synced.' });
   }
 
   const job = syncJobs.start('dropbox', event.id, toImport.length);

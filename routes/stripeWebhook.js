@@ -18,7 +18,7 @@ function handleTopupCompleted(session) {
     userId,
     type: 'stripe_topup',
     amountCents,
-    description: `Added funds via Stripe — $${(amountCents / 100).toFixed(2)} (session ${session.id})`,
+    description: `Added funds via Stripe - $${(amountCents / 100).toFixed(2)} (session ${session.id})`,
   });
 }
 
@@ -54,7 +54,7 @@ function handleSubscriptionDeleted(subscription) {
     userId: user.id,
     type: 'stripe_subscription_ended',
     amountCents: 0,
-    description: 'Pro subscription ended (cancelled or payment failed) — moved back to Single Event',
+    description: 'Pro subscription ended (cancelled or payment failed) - moved back to Single Event',
   });
 }
 

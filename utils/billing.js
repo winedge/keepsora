@@ -45,7 +45,7 @@ function ensureProPeriodCurrent(user) {
       userId: user.id,
       type: 'plan_lapsed',
       amountCents: 0,
-      description: 'Pro renewal failed (insufficient balance) — moved back to Single Event',
+      description: 'Pro renewal failed (insufficient balance) - moved back to Single Event',
     });
   }
 

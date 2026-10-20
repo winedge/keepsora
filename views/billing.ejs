@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <title>Billing — Keepsora</title>
+  <title>Billing - Keepsora</title>
   <%- include('partials/head') %>
 </head>
 <body>
@@ -37,7 +37,7 @@
         <div class="plan-switch-row">
           <% if (user.plan !== 'pro') { %>
             <form method="POST" action="/billing/upgrade" class="inline-form">
-              <button type="submit" class="btn btn-sm">Upgrade to Pro — $<%= (plans.pro.monthlyFeeCents / 100).toFixed(0) %>/mo<%= stripeConfigured ? ' via Stripe' : '' %></button>
+              <button type="submit" class="btn btn-sm">Upgrade to Pro - $<%= (plans.pro.monthlyFeeCents / 100).toFixed(0) %>/mo<%= stripeConfigured ? ' via Stripe' : '' %></button>
             </form>
           <% } else { %>
             <form method="POST" action="/billing/downgrade" class="inline-form">
@@ -71,14 +71,14 @@
           <input type="hidden" name="amountCents" id="amountCents" value="<%= presets[0] %>">
 
           <% if (stripeConfigured) { %>
-            <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="lock"></span>You'll be redirected to Stripe to pay securely — we never see or store your card details.</p>
+            <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="lock"></span>You'll be redirected to Stripe to pay securely - we never see or store your card details.</p>
           <% } else { %>
             <div class="fake-card-row">
               <input type="text" placeholder="Card number" value="4242 4242 4242 4242" maxlength="19" inputmode="numeric">
               <input type="text" placeholder="MM / YY" value="12 / 34" maxlength="7">
               <input type="text" placeholder="CVC" value="123" maxlength="4">
             </div>
-            <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="warning"></span>Demo billing — this form doesn't send or store real card details, and no real charge occurs.</p>
+            <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="warning"></span>Demo billing - this form doesn't send or store real card details, and no real charge occurs.</p>
           <% } %>
           <button type="submit" class="btn btn-block">Add funds<%= stripeConfigured ? ' via Stripe' : '' %></button>
         </form>

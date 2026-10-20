@@ -17,9 +17,9 @@ const PLANS = {
     retentionYears: 2,
     features: [
       `First ${SINGLE_EVENT_FREE_PHOTOS} photos free per event (face recognition included)`,
-      '$0.03 per photo after that — pay only for what you use',
+      '$0.03 per photo after that - pay only for what you use',
       'Unlimited guests per event',
-      'Sell photos to guests, keep 100% — 0% commission',
+      'Sell photos to guests, keep 100% - 0% commission',
       '2 years of photo storage & access',
       'Optional password-protected gallery',
     ],
@@ -36,7 +36,7 @@ const PLANS = {
     features: [
       'Unlimited events',
       '3,000 photos included every month',
-      '$0.02 per photo beyond that — cheaper than pay-as-you-go',
+      '$0.02 per photo beyond that - cheaper than pay-as-you-go',
       'Everything in Single Event, plus priority support',
       'Google Drive folder sync for bulk imports',
     ],

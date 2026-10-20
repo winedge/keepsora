@@ -45,7 +45,7 @@
       faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
     ]);
     modelsReady = true;
-    modelStatus.textContent = 'Ready — face detection will run automatically on upload.';
+    modelStatus.textContent = 'Ready - face detection will run automatically on upload.';
     startDetectionPoller();
   }
 
@@ -153,7 +153,7 @@
 
     if (uploadRes.status === 402) {
       const data = await uploadRes.json();
-      listItem.querySelector('.upload-status').textContent = 'Blocked — insufficient balance';
+      listItem.querySelector('.upload-status').textContent = 'Blocked - insufficient balance';
       const err = new Error(data.message || 'Insufficient balance');
       err.insufficientCredit = true;
       err.message2 = data.message;
@@ -169,7 +169,7 @@
 
     listItem.querySelector('.upload-status').textContent = 'Detecting faces…';
     const faceCount = await detectAndStoreFaces(result.photoId, result.url);
-    listItem.querySelector('.upload-status').textContent = `Done — ${faceCount} face${faceCount === 1 ? '' : 's'} found`;
+    listItem.querySelector('.upload-status').textContent = `Done - ${faceCount} face${faceCount === 1 ? '' : 's'} found`;
     addPhotoTile(result.photoId, result.url, faceCount, result.thumbUrl);
   }
 
@@ -316,7 +316,7 @@
         return;
       }
 
-      statusEl.textContent = `Syncing ${data.total} photo${data.total === 1 ? '' : 's'} in the background — you can leave this page and come back.`;
+      statusEl.textContent = `Syncing ${data.total} photo${data.total === 1 ? '' : 's'} in the background - you can leave this page and come back.`;
 
       for (;;) {
         await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -337,7 +337,7 @@
           return;
         }
 
-        statusEl.textContent = `Done — ${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}. Detecting faces in the background…`;
+        statusEl.textContent = `Done - ${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}. Detecting faces in the background…`;
         return;
       }
     } catch (err) {
