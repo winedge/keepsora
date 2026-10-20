@@ -188,6 +188,7 @@ router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (
       const stored = await storeImageBuffer(event, buffer, { driveFileId: file.id });
       imported.push(stored);
     } catch (err) {
+      console.error(`Drive import failed for file "${file.name}" (${file.id}):`, err);
       skipped += 1;
     }
   }
@@ -259,6 +260,7 @@ router.post('/events/:id/dropbox-import', requireAuth, dropboxImportLimiter, asy
       const stored = await storeImageBuffer(event, buffer, { dropboxFileId: file.id });
       imported.push(stored);
     } catch (err) {
+      console.error(`Dropbox import failed for file "${file.name}" (${file.id}):`, err);
       skipped += 1;
     }
   }
