@@ -50,7 +50,7 @@
         <a class="btn btn-sm btn-ghost" href="/e/<%= event.slug %>" target="_blank">Open ↗</a>
       </div>
       <% if (event.guest_password) { %>
-        <p class="muted small">🔒 Guests will need the password: <strong><%= event.guest_password %></strong></p>
+        <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="lock"></span>Guests will need the password: <strong><%= event.guest_password %></strong></p>
       <% } else { %>
         <p class="muted small">This gallery is open to anyone with the link.</p>
       <% } %>
@@ -86,7 +86,7 @@
       <p class="label">Sync from Google Drive</p>
       <p class="muted small">Paste a link to a public Google Drive folder ("Anyone with the link can view") and we'll pull in every photo from it, syncing in the background.</p>
       <% if (!driveConfigured) { %>
-        <p class="muted small">⚠️ Google Drive sync isn't configured on this server yet — an administrator needs to set a <code>GOOGLE_API_KEY</code> environment variable with the Drive API enabled. The form below will show a clear error until then.</p>
+        <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="warning"></span>Google Drive sync isn't configured on this server yet — an administrator needs to set a <code>GOOGLE_API_KEY</code> environment variable with the Drive API enabled. The form below will show a clear error until then.</p>
       <% } %>
       <form id="driveForm" class="drive-sync-row">
         <input type="text" id="driveUrlInput" placeholder="https://drive.google.com/drive/folders/...">
@@ -99,7 +99,7 @@
       <p class="label">Sync from Dropbox</p>
       <p class="muted small">Paste a link to a public Dropbox folder ("Anyone with the link can view") and we'll pull in every photo from it, syncing in the background.</p>
       <% if (!dropboxConfigured) { %>
-        <p class="muted small">⚠️ Dropbox sync isn't configured on this server yet — an administrator needs to set a <code>DROPBOX_ACCESS_TOKEN</code> environment variable. The form below will show a clear error until then.</p>
+        <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="warning"></span>Dropbox sync isn't configured on this server yet — an administrator needs to set a <code>DROPBOX_ACCESS_TOKEN</code> environment variable. The form below will show a clear error until then.</p>
       <% } %>
       <form id="dropboxForm" class="drive-sync-row">
         <input type="text" id="dropboxUrlInput" placeholder="https://www.dropbox.com/scl/fo/...">
@@ -123,6 +123,8 @@
   </main>
 
   <script src="/vendor/face-api.min.js"></script>
+  <script src="/vendor/lottie.min.js"></script>
+  <script src="/js/lottie-icons.js"></script>
   <script src="/js/upload.js"></script>
 </body>
 </html>

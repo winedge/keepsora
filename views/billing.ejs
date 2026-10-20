@@ -71,14 +71,14 @@
           <input type="hidden" name="amountCents" id="amountCents" value="<%= presets[0] %>">
 
           <% if (stripeConfigured) { %>
-            <p class="muted small">🔒 You'll be redirected to Stripe to pay securely — we never see or store your card details.</p>
+            <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="lock"></span>You'll be redirected to Stripe to pay securely — we never see or store your card details.</p>
           <% } else { %>
             <div class="fake-card-row">
               <input type="text" placeholder="Card number" value="4242 4242 4242 4242" maxlength="19" inputmode="numeric">
               <input type="text" placeholder="MM / YY" value="12 / 34" maxlength="7">
               <input type="text" placeholder="CVC" value="123" maxlength="4">
             </div>
-            <p class="muted small">⚠️ Demo billing — this form doesn't send or store real card details, and no real charge occurs.</p>
+            <p class="muted small"><span class="lottie-icon lottie-icon-sm" data-lottie="warning"></span>Demo billing — this form doesn't send or store real card details, and no real charge occurs.</p>
           <% } %>
           <button type="submit" class="btn btn-block">Add funds<%= stripeConfigured ? ' via Stripe' : '' %></button>
         </form>
@@ -108,6 +108,8 @@
     </div>
   </main>
 
+  <script src="/vendor/lottie.min.js"></script>
+  <script src="/js/lottie-icons.js"></script>
   <script src="/js/billing.js"></script>
 </body>
 </html>

@@ -21,7 +21,7 @@
     </div>
 
     <div class="card">
-      <p class="label">Guest reports<% if (stats.openReports > 0) { %> <span class="badge">⚠ <%= stats.openReports %> open</span><% } %></p>
+      <p class="label">Guest reports<% if (stats.openReports > 0) { %> <span class="badge"><span class="lottie-icon lottie-icon-sm" data-lottie="warning"></span><%= stats.openReports %> open</span><% } %></p>
       <% if (reports.length === 0) { %>
         <p class="muted">No reports yet.</p>
       <% } else { %>
@@ -126,6 +126,8 @@
       <% } %>
     </div>
   </main>
+  <script src="/vendor/lottie.min.js"></script>
+  <script src="/js/lottie-icons.js"></script>
   <script src="/js/admin.js"></script>
 </body>
 </html>

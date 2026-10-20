@@ -24,11 +24,13 @@
             <h3><%= ev.title %></h3>
             <p class="muted"><%= ev.event_date || 'No date set' %></p>
             <p class="muted"><%= ev.photo_count %> photo<%= ev.photo_count === 1 ? '' : 's' %></p>
-            <% if (ev.guest_password) { %><span class="badge">🔒 Password protected</span><% } %>
+            <% if (ev.guest_password) { %><span class="badge"><span class="lottie-icon lottie-icon-sm" data-lottie="lock"></span>Password protected</span><% } %>
           </a>
         <% }) %>
       </div>
     <% } %>
   </main>
+  <script src="/vendor/lottie.min.js"></script>
+  <script src="/js/lottie-icons.js"></script>
 </body>
 </html>

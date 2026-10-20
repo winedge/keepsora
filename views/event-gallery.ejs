@@ -22,7 +22,7 @@
     <div class="card selfie-card">
       <div class="selfie-card-inner">
         <div class="selfie-avatar" id="selfieAvatar">
-          <span class="selfie-avatar-icon">🤳</span>
+          <span class="selfie-avatar-icon lottie-icon lottie-icon-lg" data-lottie="camera"></span>
           <img id="selfiePreview" hidden>
           <span class="selfie-spinner" id="selfieSpinner" hidden></span>
         </div>
@@ -31,7 +31,7 @@
           <p class="muted small">Take or upload a selfie. Matching happens right here in your browser — your selfie is never uploaded anywhere.</p>
           <p class="selfie-status" id="matchStatus">Loading face recognition models…</p>
           <div class="selfie-actions">
-            <button type="button" class="btn btn-lg selfie-cta" id="openCameraBtn">📷 Take or upload a selfie</button>
+            <button type="button" class="btn btn-lg selfie-cta" id="openCameraBtn"><span class="lottie-icon lottie-icon-sm" data-lottie="camera"></span>Take or upload a selfie</button>
             <input type="file" id="selfieInput" accept="image/*" hidden>
             <button class="btn btn-ghost" id="clearMatchBtn" hidden>Show all photos instead</button>
           </div>
@@ -57,7 +57,7 @@
     </div>
 
     <p class="muted small report-link-row">
-      <button type="button" class="link-btn" id="reportToggleBtn">🚩 Report this gallery</button>
+      <button type="button" class="link-btn" id="reportToggleBtn"><span class="lottie-icon lottie-icon-sm" data-lottie="flag"></span>Report this gallery</button>
     </p>
     <form id="reportForm" class="card report-form" hidden>
       <p class="label">Report this gallery</p>
@@ -102,6 +102,8 @@
   </div>
 
   <script src="/vendor/face-api.min.js"></script>
+  <script src="/vendor/lottie.min.js"></script>
+  <script src="/js/lottie-icons.js"></script>
   <script src="/js/match.js"></script>
 </body>
 </html>

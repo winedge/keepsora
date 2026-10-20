@@ -57,6 +57,12 @@ a { color: inherit; text-decoration: none; }
 }
 .link-btn:hover { color: var(--text); }
 
+.lottie-icon { display: inline-block; flex: 0 0 auto; vertical-align: middle; }
+.lottie-icon-sm { width: 18px; height: 18px; margin-right: 2px; }
+.lottie-icon-md { width: 28px; height: 28px; }
+.lottie-icon-lg { width: 60px; height: 60px; }
+.usecase .lottie-icon { width: 36px; height: 36px; margin-bottom: 6px; }
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -123,6 +129,9 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius);
   padding: 20px;
   font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .cta-band {
