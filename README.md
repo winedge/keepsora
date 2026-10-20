@@ -201,6 +201,7 @@ Then open http://localhost:3000. Useful environment variables (all optional):
 |---|---|
 | `ADMIN_EMAIL` | Promotes the matching account to admin (`/admin` access) |
 | `GOOGLE_API_KEY` | Enables Google Drive folder sync |
+| `DROPBOX_ACCESS_TOKEN` | Enables Dropbox folder sync (generate from a Dropbox App Console app) |
 | `STRIPE_SECRET_KEY` | Enables real Stripe Checkout for top-ups and the Pro subscription |
 | `STRIPE_WEBHOOK_SECRET` | Verifies Stripe webhook signatures (required alongside the above) |
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Enables Cloudflare Turnstile on signup |

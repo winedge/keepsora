@@ -105,6 +105,15 @@ CREATE INDEX IF NOT EXISTS idx_reports_event ON reports(event_id);
 CREATE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id);
 `);
 
+// Added after the initial release — guarded so it's safe to run against an
+// existing database that predates Dropbox sync (SQLite has no
+// "ADD COLUMN IF NOT EXISTS", so a duplicate-column error is just ignored).
+try {
+  db.exec('ALTER TABLE photos ADD COLUMN dropbox_file_id TEXT');
+} catch (err) {
+  if (!/duplicate column name/i.test(err.message)) throw err;
+}
+
 // Promote a designated admin account by email (e.g. after it's set for the
 // first time, or if the account was created before ADMIN_EMAIL was set).
 if (process.env.ADMIN_EMAIL) {

@@ -29,9 +29,10 @@ const guestUnlockLimiter = rateLimit({ ...base, windowMs: 10 * 60 * 1000, limit:
 // Per-photo upload endpoint (the client calls this once per file).
 const uploadLimiter = rateLimit({ ...base, windowMs: 15 * 60 * 1000, limit: 300 });
 
-// Google Drive sync hits an external API and can trigger real downloads —
-// keep it tight to limit abuse/cost.
+// Google Drive / Dropbox sync hit an external API and can trigger real
+// downloads — keep it tight to limit abuse/cost.
 const driveImportLimiter = rateLimit({ ...base, windowMs: 10 * 60 * 1000, limit: 10 });
+const dropboxImportLimiter = rateLimit({ ...base, windowMs: 10 * 60 * 1000, limit: 10 });
 
 // Guest selfie matching: cheap to call but could be used to probe/enumerate
 // an event's photos, so it's still worth limiting.
@@ -52,6 +53,7 @@ module.exports = {
   guestUnlockLimiter,
   uploadLimiter,
   driveImportLimiter,
+  dropboxImportLimiter,
   matchLimiter,
   eventCreateLimiter,
   billingLimiter,

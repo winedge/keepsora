@@ -6,6 +6,15 @@
   const selfieAvatarIcon = document.querySelector('.selfie-avatar-icon');
   const selfieSpinner = document.getElementById('selfieSpinner');
   const clearMatchBtn = document.getElementById('clearMatchBtn');
+  const openCameraBtn = document.getElementById('openCameraBtn');
+
+  const cameraModal = document.getElementById('cameraModal');
+  const cameraVideo = document.getElementById('cameraVideo');
+  const cameraCanvas = document.getElementById('cameraCanvas');
+  const cameraCloseBtn = document.getElementById('cameraCloseBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const uploadInsteadBtn = document.getElementById('uploadInsteadBtn');
+  const cameraError = document.getElementById('cameraError');
   const photoGrid = document.getElementById('photoGrid');
   const gridLabel = document.getElementById('gridLabel');
   const lightbox = document.getElementById('lightbox');
@@ -139,11 +148,8 @@
     });
   }
 
-  selfieInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const objectUrl = URL.createObjectURL(file);
+  async function processSelfieBlob(blob) {
+    const objectUrl = URL.createObjectURL(blob);
     selfiePreview.src = objectUrl;
     selfiePreview.hidden = false;
     selfieAvatarIcon.hidden = true;
@@ -193,6 +199,77 @@
     } finally {
       setBusy(false);
     }
+  }
+
+  selfieInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) processSelfieBlob(file);
+  });
+
+  let cameraStream = null;
+
+  function closeCamera() {
+    cameraModal.hidden = true;
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((t) => t.stop());
+      cameraStream = null;
+    }
+    cameraVideo.srcObject = null;
+  }
+
+  async function openCamera() {
+    cameraError.hidden = true;
+    cameraModal.hidden = false;
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } },
+        audio: false,
+      });
+      cameraVideo.srcObject = cameraStream;
+      await cameraVideo.play().catch(() => {});
+    } catch (err) {
+      cameraError.textContent = `Couldn't access your camera (${err.message || err.name}). You can upload a photo instead.`;
+      cameraError.hidden = false;
+    }
+  }
+
+  openCameraBtn.addEventListener('click', () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      openCamera();
+    } else {
+      // No camera API support (very old browser) — fall straight back to the file picker.
+      selfieInput.click();
+    }
+  });
+
+  cameraCloseBtn.addEventListener('click', closeCamera);
+
+  uploadInsteadBtn.addEventListener('click', () => {
+    closeCamera();
+    selfieInput.click();
+  });
+
+  captureBtn.addEventListener('click', () => {
+    const vw = cameraVideo.videoWidth;
+    const vh = cameraVideo.videoHeight;
+    if (!vw || !vh) return;
+
+    cameraCanvas.width = vw;
+    cameraCanvas.height = vh;
+    const ctx = cameraCanvas.getContext('2d');
+    // Mirror the capture to match the mirrored preview the user was looking at.
+    ctx.translate(vw, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(cameraVideo, 0, 0, vw, vh);
+
+    cameraCanvas.toBlob(
+      async (blob) => {
+        closeCamera();
+        if (blob) await processSelfieBlob(blob);
+      },
+      'image/jpeg',
+      0.92
+    );
   });
 
   clearMatchBtn.addEventListener('click', () => {

@@ -10,7 +10,8 @@ const upload = require('../utils/upload');
 const { chargeForPhotos, usageSummary } = require('../utils/billing');
 const { formatCents } = require('../utils/plans');
 const googleDrive = require('../utils/googleDrive');
-const { eventCreateLimiter, uploadLimiter, driveImportLimiter } = require('../middleware/rateLimiters');
+const dropbox = require('../utils/dropbox');
+const { eventCreateLimiter, uploadLimiter, driveImportLimiter, dropboxImportLimiter } = require('../middleware/rateLimiters');
 
 const router = express.Router();
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
@@ -21,7 +22,7 @@ function getOwnedEvent(req) {
   return event;
 }
 
-async function storeImageBuffer(event, buffer, driveFileId = null) {
+async function storeImageBuffer(event, buffer, { driveFileId = null, dropboxFileId = null } = {}) {
   const eventDir = path.join(UPLOADS_DIR, event.slug);
   fs.mkdirSync(eventDir, { recursive: true });
 
@@ -34,8 +35,8 @@ async function storeImageBuffer(event, buffer, driveFileId = null) {
     .toFile(outPath);
 
   const info = db.prepare(`
-    INSERT INTO photos (event_id, filename, width, height, drive_file_id) VALUES (?, ?, ?, ?, ?)
-  `).run(event.id, filename, meta.width, meta.height, driveFileId);
+    INSERT INTO photos (event_id, filename, width, height, drive_file_id, dropbox_file_id) VALUES (?, ?, ?, ?, ?, ?)
+  `).run(event.id, filename, meta.width, meta.height, driveFileId, dropboxFileId);
 
   return {
     photoId: info.lastInsertRowid,
@@ -91,6 +92,7 @@ router.get('/events/:id/manage', requireAuth, (req, res) => {
     host: `${req.protocol}://${req.get('host')}`,
     usage: usageSummary(req.user.id, event),
     driveConfigured: Boolean(process.env.GOOGLE_API_KEY),
+    dropboxConfigured: Boolean(process.env.DROPBOX_ACCESS_TOKEN),
   });
 });
 
@@ -183,7 +185,78 @@ router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (
     }
     try {
       const buffer = await googleDrive.downloadFile(file.id, apiKey);
-      const stored = await storeImageBuffer(event, buffer, file.id);
+      const stored = await storeImageBuffer(event, buffer, { driveFileId: file.id });
+      imported.push(stored);
+    } catch (err) {
+      skipped += 1;
+    }
+  }
+
+  if (imported.length === 0 && blockedByCredit) {
+    return res.status(402).json({
+      error: 'insufficient_credit',
+      message: `You need ${formatCents(blockedByCredit.needed)} more in your balance to import photos beyond your plan's free quota.`,
+      needed: blockedByCredit.needed,
+      balance: blockedByCredit.balance,
+    });
+  }
+
+  res.json({
+    imported,
+    skipped,
+    stoppedForBilling: Boolean(blockedByCredit),
+  });
+});
+
+router.post('/events/:id/dropbox-import', requireAuth, dropboxImportLimiter, async (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
+  if (!accessToken) {
+    return res.status(400).json({
+      error: 'not_configured',
+      message: 'Dropbox sync is not configured on this server. An administrator needs to set DROPBOX_ACCESS_TOKEN as an environment variable.',
+    });
+  }
+
+  const dropboxUrl = (req.body.dropboxUrl || '').trim().slice(0, 2000);
+  if (!dropbox.isDropboxShareUrl(dropboxUrl)) {
+    return res.status(400).json({ error: 'invalid_url', message: "That doesn't look like a Dropbox folder link." });
+  }
+
+  let files;
+  try {
+    files = await dropbox.listImageFiles(dropboxUrl, accessToken);
+  } catch (err) {
+    return res.status(502).json({ error: 'dropbox_error', message: `Could not read that Dropbox folder: ${err.message}` });
+  }
+
+  const alreadyImported = new Set(
+    db.prepare('SELECT dropbox_file_id FROM photos WHERE event_id = ? AND dropbox_file_id IS NOT NULL').all(event.id)
+      .map((r) => r.dropbox_file_id)
+  );
+  const toImport = files.filter((f) => !alreadyImported.has(f.id));
+
+  if (toImport.length === 0) {
+    return res.json({ imported: [], skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
+  }
+
+  // Charge per photo as it's actually stored, so a failed download or a wallet
+  // that runs out partway through only charges for photos that really landed.
+  const imported = [];
+  let skipped = files.length - toImport.length;
+  let blockedByCredit = null;
+
+  for (const file of toImport) {
+    const charge = chargeForPhotos(req.user.id, event, 1);
+    if (!charge.ok) {
+      blockedByCredit = charge;
+      break;
+    }
+    try {
+      const buffer = await dropbox.downloadFile(dropboxUrl, file.path, accessToken);
+      const stored = await storeImageBuffer(event, buffer, { dropboxFileId: file.id });
       imported.push(stored);
     } catch (err) {
       skipped += 1;

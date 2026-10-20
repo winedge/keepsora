@@ -14,6 +14,10 @@
   const driveUrlInput = document.getElementById('driveUrlInput');
   const driveStatus = document.getElementById('driveStatus');
 
+  const dropboxForm = document.getElementById('dropboxForm');
+  const dropboxUrlInput = document.getElementById('dropboxUrlInput');
+  const dropboxStatus = document.getElementById('dropboxStatus');
+
   let photoCount = photoGrid.querySelectorAll('.photo-tile').length;
   function updatePhotoCount() {
     photoCountLabel.textContent = `${photoCount} photo${photoCount === 1 ? '' : 's'} in this event`;
@@ -257,6 +261,59 @@
         driveStatus.textContent = 'Error: ' + err.message;
       } finally {
         driveForm.querySelector('button').disabled = false;
+      }
+    });
+  }
+
+  if (dropboxForm) {
+    dropboxForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dropboxUrl = dropboxUrlInput.value.trim();
+      if (!dropboxUrl) return;
+
+      dropboxStatus.textContent = 'Importing from Dropbox… this can take a minute for large folders.';
+      dropboxForm.querySelector('button').disabled = true;
+
+      try {
+        const res = await fetch(`/events/${EVENT_ID}/dropbox-import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dropboxUrl }),
+        });
+        const data = await res.json();
+
+        if (res.status === 402) {
+          showBillingBanner(data.message || 'You have run out of free photos for this event.');
+          dropboxStatus.textContent = '';
+          return;
+        }
+
+        if (!res.ok) {
+          dropboxStatus.textContent = data.message || data.error || 'Could not import from Dropbox.';
+          return;
+        }
+
+        for (const p of data.imported || []) {
+          addPhotoTile(p.photoId, p.url, 0);
+        }
+
+        const parts = [];
+        if (data.imported?.length) parts.push(`${data.imported.length} photo${data.imported.length === 1 ? '' : 's'} imported`);
+        if (data.skipped) parts.push(`${data.skipped} skipped`);
+        dropboxStatus.textContent = parts.length ? parts.join(', ') + '. Detecting faces…' : 'No new images found in that folder.';
+
+        if (data.stoppedForBilling) {
+          showBillingBanner("You've used up your plan's free photo quota, so the import stopped partway through.");
+        }
+
+        await processPendingPhotos();
+        if (data.imported?.length) {
+          dropboxStatus.textContent = `${data.imported.length} photo${data.imported.length === 1 ? '' : 's'} imported and scanned for faces.`;
+        }
+      } catch (err) {
+        dropboxStatus.textContent = 'Error: ' + err.message;
+      } finally {
+        dropboxForm.querySelector('button').disabled = false;
       }
     });
   }

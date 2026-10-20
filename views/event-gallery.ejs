@@ -26,10 +26,8 @@
           <p class="muted small">Take or upload a selfie. Matching happens right here in your browser — your selfie is never uploaded anywhere.</p>
           <p class="selfie-status" id="matchStatus">Loading face recognition models…</p>
           <div class="selfie-actions">
-            <label class="btn btn-lg selfie-cta">
-              📷 Take or upload a selfie
-              <input type="file" id="selfieInput" accept="image/*" capture="user" hidden>
-            </label>
+            <button type="button" class="btn btn-lg selfie-cta" id="openCameraBtn">📷 Take or upload a selfie</button>
+            <input type="file" id="selfieInput" accept="image/*" hidden>
             <button class="btn btn-ghost" id="clearMatchBtn" hidden>Show all photos instead</button>
           </div>
         </div>
@@ -62,6 +60,23 @@
       <p class="muted small" id="reportStatus"></p>
     </form>
   </main>
+
+  <div class="camera-modal" id="cameraModal" hidden>
+    <button class="camera-close" id="cameraCloseBtn" aria-label="Close camera">✕</button>
+    <div class="camera-modal-inner">
+      <div class="camera-viewport">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <div class="camera-guide"><div class="camera-guide-oval"></div></div>
+      </div>
+      <p class="camera-hint">Stand straight, center your face in the oval, and make sure you're well lit.</p>
+      <p class="camera-error" id="cameraError" hidden></p>
+      <div class="camera-actions">
+        <button type="button" class="camera-shutter" id="captureBtn" aria-label="Capture selfie"></button>
+      </div>
+      <button type="button" class="link-btn camera-upload-instead" id="uploadInsteadBtn">Or upload a photo instead</button>
+    </div>
+  </div>
+  <canvas id="cameraCanvas" hidden></canvas>
 
   <div class="lightbox" id="lightbox" hidden>
     <button class="lightbox-close" id="lightboxClose">✕</button>
