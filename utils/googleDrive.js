@@ -8,7 +8,7 @@ const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 // Safety cap per sync — the import itself runs as a background job (see
 // utils/syncJobs.js), not inside the HTTP request, so this just bounds a
 // single run's worst case rather than protecting against a proxy timeout.
-const MAX_FILES = 500;
+const MAX_FILES = 3000;
 
 const FOLDER_URL_PATTERNS = [
   /\/folders\/([a-zA-Z0-9_-]+)/, // drive.google.com/drive/folders/<id>

@@ -12,7 +12,7 @@ const DOWNLOAD_URL = 'https://content.dropboxapi.com/2/sharing/get_shared_link_f
 // Safety cap per sync — the import itself runs as a background job (see
 // utils/syncJobs.js), not inside the HTTP request, so this just bounds a
 // single run's worst case rather than protecting against a proxy timeout.
-const MAX_FILES = 500;
+const MAX_FILES = 3000;
 const IMAGE_EXT_RE = /\.(jpe?g|png|webp)$/i;
 
 function isDropboxShareUrl(url) {
