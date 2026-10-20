@@ -59,6 +59,7 @@ router.get('/api/events/:slug/photos', (req, res) => {
     photos: photos.map((p) => ({
       id: p.id,
       url: `/uploads/${event.slug}/${p.filename}`,
+      thumbUrl: `/uploads/${event.slug}/thumbs/${p.filename}`,
       width: p.width,
       height: p.height,
     })),
@@ -102,6 +103,7 @@ router.post('/api/events/:slug/match', matchLimiter, (req, res) => {
     .map(([photoId, v]) => ({
       id: photoId,
       url: `/uploads/${event.slug}/${v.filename}`,
+      thumbUrl: `/uploads/${event.slug}/thumbs/${v.filename}`,
       width: v.width,
       height: v.height,
       distance: v.dist,

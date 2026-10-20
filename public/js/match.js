@@ -108,8 +108,9 @@
       const div = document.createElement('div');
       div.className = 'photo-tile';
       const isFav = favs.includes(p.id);
+      const dims = p.width && p.height ? ` width="${p.width}" height="${p.height}"` : '';
       div.innerHTML = `
-        <img src="${p.url}" loading="lazy">
+        <img src="${p.thumbUrl || p.url}" loading="lazy"${dims}>
         <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${p.id}" title="Favorite">★</button>
       `;
       div.querySelector('img').addEventListener('click', () => openLightbox(p.url));

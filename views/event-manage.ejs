@@ -96,7 +96,7 @@
       <div class="photo-grid" id="photoGrid">
         <% photos.forEach(p => { %>
           <div class="photo-tile" data-photo-id="<%= p.id %>">
-            <img src="/uploads/<%= event.slug %>/<%= p.filename %>" loading="lazy">
+            <img src="/uploads/<%= event.slug %>/thumbs/<%= p.filename %>" loading="lazy" width="<%= p.width %>" height="<%= p.height %>">
             <span class="face-badge"><%= p.face_count %> face<%= p.face_count === 1 ? '' : 's' %></span>
             <button class="delete-btn" data-id="<%= p.id %>" title="Delete photo">✕</button>
           </div>

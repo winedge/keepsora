@@ -23,9 +23,18 @@ function getOwnedEvent(req) {
   return event;
 }
 
+// Grid/gallery views only ever need a small preview — serving the full
+// 1600px image for every tile is what made a 1000+ photo gallery painfully
+// slow to load even with lazy loading (the browser still fetches the full
+// file for anything that scrolls into view). Thumbnails live alongside the
+// full image under a thumbs/ subfolder, named identically, so no DB column
+// is needed to track the relationship — just swap the path segment.
+const THUMB_MAX = 400;
+
 async function storeImageBuffer(event, buffer, { driveFileId = null, dropboxFileId = null } = {}) {
   const eventDir = path.join(UPLOADS_DIR, event.slug);
-  fs.mkdirSync(eventDir, { recursive: true });
+  const thumbDir = path.join(eventDir, 'thumbs');
+  fs.mkdirSync(thumbDir, { recursive: true });
 
   const filename = `${nanoid(12)}.jpg`;
   const outPath = path.join(eventDir, filename);
@@ -35,6 +44,12 @@ async function storeImageBuffer(event, buffer, { driveFileId = null, dropboxFile
     .jpeg({ quality: 85 })
     .toFile(outPath);
 
+  await sharp(buffer)
+    .rotate()
+    .resize({ width: THUMB_MAX, height: THUMB_MAX, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 70 })
+    .toFile(path.join(thumbDir, filename));
+
   const info = db.prepare(`
     INSERT INTO photos (event_id, filename, width, height, drive_file_id, dropbox_file_id) VALUES (?, ?, ?, ?, ?, ?)
   `).run(event.id, filename, meta.width, meta.height, driveFileId, dropboxFileId);
@@ -42,6 +57,7 @@ async function storeImageBuffer(event, buffer, { driveFileId = null, dropboxFile
   return {
     photoId: info.lastInsertRowid,
     url: `/uploads/${event.slug}/${filename}`,
+    thumbUrl: `/uploads/${event.slug}/thumbs/${filename}`,
     width: meta.width,
     height: meta.height,
   };
@@ -129,11 +145,17 @@ router.get('/events/:id/unprocessed-photos', requireAuth, (req, res) => {
   if (!event) return res.status(404).json({ error: 'Event not found' });
 
   const photos = db.prepare(`
-    SELECT id, filename FROM photos WHERE event_id = ? AND faces_processed = 0 ORDER BY created_at ASC
+    SELECT id, filename, width, height FROM photos WHERE event_id = ? AND faces_processed = 0 ORDER BY created_at ASC
   `).all(event.id);
 
   res.json({
-    photos: photos.map((p) => ({ id: p.id, url: `/uploads/${event.slug}/${p.filename}` })),
+    photos: photos.map((p) => ({
+      id: p.id,
+      url: `/uploads/${event.slug}/${p.filename}`,
+      thumbUrl: `/uploads/${event.slug}/thumbs/${p.filename}`,
+      width: p.width,
+      height: p.height,
+    })),
   });
 });
 
@@ -315,8 +337,8 @@ router.post('/events/:id/photos/:photoId/delete', requireAuth, (req, res) => {
 
   db.prepare('DELETE FROM faces WHERE photo_id = ?').run(photo.id);
   db.prepare('DELETE FROM photos WHERE id = ?').run(photo.id);
-  const filePath = path.join(UPLOADS_DIR, event.slug, photo.filename);
-  fs.unlink(filePath, () => {});
+  fs.unlink(path.join(UPLOADS_DIR, event.slug, photo.filename), () => {});
+  fs.unlink(path.join(UPLOADS_DIR, event.slug, 'thumbs', photo.filename), () => {});
 
   res.json({ ok: true });
 });

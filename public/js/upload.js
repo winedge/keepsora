@@ -60,12 +60,12 @@
     return li;
   }
 
-  function addPhotoTile(photoId, url, faceCount) {
+  function addPhotoTile(photoId, url, faceCount, thumbUrl) {
     const div = document.createElement('div');
     div.className = 'photo-tile';
     div.dataset.photoId = photoId;
     div.innerHTML = `
-      <img src="${url}" loading="lazy">
+      <img src="${thumbUrl || url}" loading="lazy">
       <span class="face-badge">${faceCount} face${faceCount === 1 ? '' : 's'}</span>
       <button class="delete-btn" data-id="${photoId}" title="Delete photo">✕</button>
     `;
@@ -132,7 +132,7 @@
         // A background Drive/Dropbox sync stores photos without the client
         // ever seeing a per-file list, so the tile may not exist yet.
         if (!photoGrid.querySelector(`.photo-tile[data-photo-id="${p.id}"]`)) {
-          addPhotoTile(p.id, p.url, 0);
+          addPhotoTile(p.id, p.url, 0, p.thumbUrl);
         }
         try {
           const faceCount = await detectAndStoreFaces(p.id, p.url);
@@ -171,7 +171,7 @@
     listItem.querySelector('.upload-status').textContent = 'Detecting faces…';
     const faceCount = await detectAndStoreFaces(result.photoId, result.url);
     listItem.querySelector('.upload-status').textContent = `Done — ${faceCount} face${faceCount === 1 ? '' : 's'} found`;
-    addPhotoTile(result.photoId, result.url, faceCount);
+    addPhotoTile(result.photoId, result.url, faceCount, result.thumbUrl);
   }
 
   async function handleFiles(fileList) {
