@@ -105,13 +105,15 @@
       box: { x: d.detection.box.x, y: d.detection.box.y, width: d.detection.box.width, height: d.detection.box.height },
     }));
 
-    if (faces.length > 0) {
-      await fetch(`/events/${EVENT_ID}/photos/${photoId}/faces`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faces }),
-      });
-    }
+    // Always tell the server this photo was looked at — that's what marks it
+    // faces_processed (see routes/events.js), even with an empty faces list.
+    // Skipping the call for a genuine zero-face result left it permanently
+    // "unprocessed": retried on every poll forever, stalling the counter.
+    await fetch(`/events/${EVENT_ID}/photos/${photoId}/faces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ faces }),
+    });
     return faces.length;
   }
 
