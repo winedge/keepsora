@@ -6,6 +6,11 @@
 </head>
 <body data-event-slug="<%= event.slug %>">
   <%- include('partials/nav') %>
+  <% if (event.cover_photo) { %>
+    <div class="event-banner">
+      <img src="/uploads/<%= event.slug %>/<%= event.cover_photo %>" alt="<%= event.title %>">
+    </div>
+  <% } %>
   <main class="page">
     <div class="page-head">
       <div>

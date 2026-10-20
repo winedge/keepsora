@@ -113,6 +113,36 @@ router.get('/events/:id/manage', requireAuth, (req, res) => {
   });
 });
 
+// Banner dimensions are fixed (not just a suggested aspect ratio) per the
+// design spec — the upload is cropped to exactly fill this box, centered on
+// whatever region of the source image sharp's entropy-based "attention"
+// strategy finds most interesting, rather than a naive center crop.
+const BANNER_WIDTH = 1905;
+const BANNER_HEIGHT = 893;
+
+router.post('/events/:id/banner', requireAuth, upload.single('banner'), async (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!req.file) return res.status(400).json({ error: 'no_file', message: 'No image uploaded.' });
+
+  const eventDir = path.join(UPLOADS_DIR, event.slug);
+  fs.mkdirSync(eventDir, { recursive: true });
+  const filename = 'banner.jpg';
+
+  try {
+    await sharp(req.file.buffer)
+      .rotate()
+      .resize({ width: BANNER_WIDTH, height: BANNER_HEIGHT, fit: 'cover', position: sharp.strategy.attention })
+      .jpeg({ quality: 85 })
+      .toFile(path.join(eventDir, filename));
+  } catch (err) {
+    return res.status(400).json({ error: 'invalid_image', message: 'Could not process that image.' });
+  }
+
+  db.prepare('UPDATE events SET cover_photo = ? WHERE id = ?').run(filename, event.id);
+  res.json({ ok: true, url: `/uploads/${event.slug}/${filename}?v=${Date.now()}` });
+});
+
 router.post('/events/:id/photos', requireAuth, uploadLimiter, upload.array('photos', 40), async (req, res) => {
   const event = getOwnedEvent(req);
   if (!event) return res.status(404).json({ error: 'Event not found' });

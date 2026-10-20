@@ -417,6 +417,14 @@ a { color: inherit; text-decoration: none; }
 .amount-neg { color: #ff8585; }
 
 /* Google Drive sync */
+.banner-preview {
+  display: block; width: 100%; max-width: 480px; aspect-ratio: 1905 / 893;
+  object-fit: cover; border-radius: 10px; margin-bottom: 10px;
+}
+
+.event-banner { width: 100%; max-width: 1905px; margin: 0 auto; aspect-ratio: 1905 / 893; overflow: hidden; }
+.event-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 .drive-sync-row { display: flex; gap: 8px; margin-top: 10px; }
 .drive-sync-row input[type=text] {
   flex: 1; min-width: 0; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;

@@ -57,6 +57,19 @@
     </div>
 
     <div class="card">
+      <p class="label">Event banner</p>
+      <p class="muted small">Shown across the top of your guest gallery page. Uploaded images are cropped to exactly 1905 × 893px.</p>
+      <% if (event.cover_photo) { %>
+        <img src="/uploads/<%= event.slug %>/<%= event.cover_photo %>" class="banner-preview" id="bannerPreview" alt="Current banner">
+      <% } %>
+      <form id="bannerForm" class="drive-sync-row">
+        <input type="file" id="bannerInput" accept="image/jpeg,image/png,image/webp">
+        <button type="submit" class="btn btn-sm">Upload banner</button>
+      </form>
+      <p class="muted small" id="bannerStatus"></p>
+    </div>
+
+    <div class="card">
       <p class="label">Upload photos</p>
       <div id="dropzone" class="dropzone">
         <p>Drag &amp; drop photos here, or</p>

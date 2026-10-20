@@ -20,6 +20,10 @@
   const dropboxUrlInput = document.getElementById('dropboxUrlInput');
   const dropboxStatus = document.getElementById('dropboxStatus');
 
+  const bannerForm = document.getElementById('bannerForm');
+  const bannerInput = document.getElementById('bannerInput');
+  const bannerStatus = document.getElementById('bannerStatus');
+
   let photoCount = photoGrid.querySelectorAll('.photo-tile').length;
   function updatePhotoCount() {
     photoCountLabel.textContent = `${photoCount} photo${photoCount === 1 ? '' : 's'} in this event`;
@@ -240,6 +244,46 @@
       e.preventDefault();
       const dropboxUrl = dropboxUrlInput.value.trim();
       if (dropboxUrl) startBackgroundSync('dropbox', dropboxForm, { dropboxUrl }, dropboxStatus);
+    });
+  }
+
+  if (bannerForm) {
+    bannerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = bannerInput.files[0];
+      if (!file) return;
+
+      const button = bannerForm.querySelector('button');
+      button.disabled = true;
+      bannerStatus.textContent = 'Uploading banner…';
+
+      try {
+        const form = new FormData();
+        form.append('banner', file);
+        const res = await fetch(`/events/${EVENT_ID}/banner`, { method: 'POST', body: form });
+        const data = await res.json();
+
+        if (!res.ok) {
+          bannerStatus.textContent = data.message || data.error || 'Could not upload banner.';
+          return;
+        }
+
+        let preview = document.getElementById('bannerPreview');
+        if (!preview) {
+          preview = document.createElement('img');
+          preview.id = 'bannerPreview';
+          preview.className = 'banner-preview';
+          preview.alt = 'Current banner';
+          bannerForm.parentElement.insertBefore(preview, bannerForm);
+        }
+        preview.src = data.url;
+        bannerStatus.textContent = 'Banner updated.';
+        bannerInput.value = '';
+      } catch (err) {
+        bannerStatus.textContent = 'Error: ' + err.message;
+      } finally {
+        button.disabled = false;
+      }
     });
   }
 
