@@ -116,13 +116,19 @@
   }
 
   let pendingInFlight = false;
-  async function processPendingPhotos() {
+  // `photos`, when given, skips the fetch — callers that already have a
+  // fresh unprocessed-photos list (runFaceDetection's polling loop) pass it
+  // through instead of hitting the same endpoint twice per tick.
+  async function processPendingPhotos(photos) {
     if (!modelsReady || pendingInFlight) return;
     pendingInFlight = true;
     try {
-      const res = await fetch(`/events/${EVENT_ID}/unprocessed-photos`);
-      const data = await res.json();
-      for (const p of data.photos || []) {
+      if (!photos) {
+        const res = await fetch(`/events/${EVENT_ID}/unprocessed-photos`);
+        const data = await res.json();
+        photos = data.photos;
+      }
+      for (const p of photos || []) {
         // A background Drive/Dropbox sync stores photos without the client
         // ever seeing a per-file list, so the tile may not exist yet.
         if (!photoGrid.querySelector(`.photo-tile[data-photo-id="${p.id}"]`)) {
@@ -326,7 +332,7 @@
         statusEl.hidden = false;
         statusEl.textContent = `${prefix} ${remaining} photo${remaining === 1 ? '' : 's'} left.`;
       }
-      await processPendingPhotos();
+      await processPendingPhotos(data.photos);
     }
 
     return remaining;

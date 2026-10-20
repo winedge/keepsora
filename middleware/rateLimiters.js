@@ -16,8 +16,13 @@ const base = {
 };
 
 // A generous baseline applied to every request, mainly to blunt blunt-force
-// scripted abuse that ignores the more specific limiters below.
-const globalLimiter = rateLimit({ ...base, windowMs: 15 * 60 * 1000, limit: 600 });
+// scripted abuse that ignores the more specific limiters below. Sized well
+// above normal browsing because the organizer's own browser legitimately
+// hits this a lot while processing a synced folder — each photo means at
+// least one image fetch plus (if it has a face) one descriptor POST, so a
+// folder of a thousand-plus photos alone can be 2000+ requests in one
+// session.
+const globalLimiter = rateLimit({ ...base, windowMs: 15 * 60 * 1000, limit: 6000 });
 
 // Login/signup: the classic brute-force / credential-stuffing / signup-spam
 // surface. Keyed on IP; deliberately strict.
