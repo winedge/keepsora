@@ -11,6 +11,7 @@ const { chargeForPhotos, usageSummary } = require('../utils/billing');
 const { formatCents } = require('../utils/plans');
 const googleDrive = require('../utils/googleDrive');
 const dropbox = require('../utils/dropbox');
+const syncJobs = require('../utils/syncJobs');
 const { eventCreateLimiter, uploadLimiter, driveImportLimiter, dropboxImportLimiter } = require('../middleware/rateLimiters');
 
 const router = express.Router();
@@ -136,6 +137,37 @@ router.get('/events/:id/unprocessed-photos', requireAuth, (req, res) => {
   });
 });
 
+// Runs the actual per-file download/charge/store loop in the background —
+// called after the HTTP response for the *-import route has already been
+// sent, so a large folder isn't held open inside one request (that's what
+// caused proxy timeouts). `job` (from utils/syncJobs) is mutated in place as
+// progress happens; the client polls the matching GET .../status route.
+async function runImportJob(job, userId, event, toImport, downloadFile) {
+  try {
+    for (const file of toImport) {
+      const charge = chargeForPhotos(userId, event, 1);
+      if (!charge.ok) {
+        job.status = 'blocked_by_billing';
+        job.billing = charge;
+        return;
+      }
+      try {
+        const buffer = await downloadFile(file);
+        await storeImageBuffer(event, buffer, { driveFileId: file.driveFileId, dropboxFileId: file.dropboxFileId });
+        job.imported += 1;
+      } catch (err) {
+        console.error(`Import failed for file "${file.name}":`, err);
+        job.skipped += 1;
+      }
+    }
+    job.status = 'done';
+  } catch (err) {
+    console.error('Background import job crashed:', err);
+    job.status = 'error';
+    job.error = err.message;
+  }
+}
+
 router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (req, res) => {
   const event = getOwnedEvent(req);
   if (!event) return res.status(404).json({ error: 'Event not found' });
@@ -146,6 +178,10 @@ router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (
       error: 'not_configured',
       message: 'Google Drive sync is not configured on this server. An administrator needs to set GOOGLE_API_KEY (with the Drive API enabled) as an environment variable.',
     });
+  }
+
+  if (syncJobs.isRunning('drive', event.id)) {
+    return res.status(409).json({ error: 'sync_in_progress', message: 'A Google Drive sync is already running for this event.' });
   }
 
   const driveUrl = (req.body.driveUrl || '').trim().slice(0, 2000);
@@ -168,45 +204,25 @@ router.post('/events/:id/drive-import', requireAuth, driveImportLimiter, async (
   const toImport = files.filter((f) => !alreadyImported.has(f.id));
 
   if (toImport.length === 0) {
-    return res.json({ imported: [], skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
+    return res.json({ started: false, skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
   }
 
-  // Charge per photo as it's actually stored, so a failed download or a wallet
-  // that runs out partway through only charges for photos that really landed.
-  const imported = [];
-  let skipped = files.length - toImport.length;
-  let blockedByCredit = null;
+  const job = syncJobs.start('drive', event.id, toImport.length);
+  res.json({ started: true, total: toImport.length });
 
-  for (const file of toImport) {
-    const charge = chargeForPhotos(req.user.id, event, 1);
-    if (!charge.ok) {
-      blockedByCredit = charge;
-      break;
-    }
-    try {
-      const buffer = await googleDrive.downloadFile(file.id, apiKey);
-      const stored = await storeImageBuffer(event, buffer, { driveFileId: file.id });
-      imported.push(stored);
-    } catch (err) {
-      console.error(`Drive import failed for file "${file.name}" (${file.id}):`, err);
-      skipped += 1;
-    }
-  }
+  runImportJob(
+    job,
+    req.user.id,
+    event,
+    toImport.map((f) => ({ ...f, driveFileId: f.id })),
+    (file) => googleDrive.downloadFile(file.id, apiKey)
+  );
+});
 
-  if (imported.length === 0 && blockedByCredit) {
-    return res.status(402).json({
-      error: 'insufficient_credit',
-      message: `You need ${formatCents(blockedByCredit.needed)} more in your balance to import photos beyond your plan's free quota.`,
-      needed: blockedByCredit.needed,
-      balance: blockedByCredit.balance,
-    });
-  }
-
-  res.json({
-    imported,
-    skipped,
-    stoppedForBilling: Boolean(blockedByCredit),
-  });
+router.get('/events/:id/drive-import/status', requireAuth, (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  res.json(syncJobs.get('drive', event.id) || { status: 'idle' });
 });
 
 router.post('/events/:id/dropbox-import', requireAuth, dropboxImportLimiter, async (req, res) => {
@@ -219,6 +235,10 @@ router.post('/events/:id/dropbox-import', requireAuth, dropboxImportLimiter, asy
       error: 'not_configured',
       message: 'Dropbox sync is not configured on this server. An administrator needs to set DROPBOX_ACCESS_TOKEN as an environment variable.',
     });
+  }
+
+  if (syncJobs.isRunning('dropbox', event.id)) {
+    return res.status(409).json({ error: 'sync_in_progress', message: 'A Dropbox sync is already running for this event.' });
   }
 
   const dropboxUrl = (req.body.dropboxUrl || '').trim().slice(0, 2000);
@@ -240,45 +260,25 @@ router.post('/events/:id/dropbox-import', requireAuth, dropboxImportLimiter, asy
   const toImport = files.filter((f) => !alreadyImported.has(f.id));
 
   if (toImport.length === 0) {
-    return res.json({ imported: [], skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
+    return res.json({ started: false, skipped: files.length, message: 'Nothing new to import — all photos in that folder are already synced.' });
   }
 
-  // Charge per photo as it's actually stored, so a failed download or a wallet
-  // that runs out partway through only charges for photos that really landed.
-  const imported = [];
-  let skipped = files.length - toImport.length;
-  let blockedByCredit = null;
+  const job = syncJobs.start('dropbox', event.id, toImport.length);
+  res.json({ started: true, total: toImport.length });
 
-  for (const file of toImport) {
-    const charge = chargeForPhotos(req.user.id, event, 1);
-    if (!charge.ok) {
-      blockedByCredit = charge;
-      break;
-    }
-    try {
-      const buffer = await dropbox.downloadFile(dropboxUrl, file.path, accessToken);
-      const stored = await storeImageBuffer(event, buffer, { dropboxFileId: file.id });
-      imported.push(stored);
-    } catch (err) {
-      console.error(`Dropbox import failed for file "${file.name}" (${file.id}):`, err);
-      skipped += 1;
-    }
-  }
+  runImportJob(
+    job,
+    req.user.id,
+    event,
+    toImport.map((f) => ({ ...f, dropboxFileId: f.id })),
+    (file) => dropbox.downloadFile(dropboxUrl, file.path, accessToken)
+  );
+});
 
-  if (imported.length === 0 && blockedByCredit) {
-    return res.status(402).json({
-      error: 'insufficient_credit',
-      message: `You need ${formatCents(blockedByCredit.needed)} more in your balance to import photos beyond your plan's free quota.`,
-      needed: blockedByCredit.needed,
-      balance: blockedByCredit.balance,
-    });
-  }
-
-  res.json({
-    imported,
-    skipped,
-    stoppedForBilling: Boolean(blockedByCredit),
-  });
+router.get('/events/:id/dropbox-import/status', requireAuth, (req, res) => {
+  const event = getOwnedEvent(req);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  res.json(syncJobs.get('dropbox', event.id) || { status: 'idle' });
 });
 
 router.post('/events/:id/photos/:photoId/faces', requireAuth, (req, res) => {

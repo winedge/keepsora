@@ -114,6 +114,11 @@
       const res = await fetch(`/events/${EVENT_ID}/unprocessed-photos`);
       const data = await res.json();
       for (const p of data.photos || []) {
+        // A background Drive/Dropbox sync stores photos without the client
+        // ever seeing a per-file list, so the tile may not exist yet.
+        if (!photoGrid.querySelector(`.photo-tile[data-photo-id="${p.id}"]`)) {
+          addPhotoTile(p.id, p.url, 0);
+        }
         try {
           const faceCount = await detectAndStoreFaces(p.id, p.url);
           updateTileBadge(p.id, faceCount);
@@ -213,109 +218,81 @@
   });
 
   if (driveForm) {
-    driveForm.addEventListener('submit', async (e) => {
+    driveForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const driveUrl = driveUrlInput.value.trim();
-      if (!driveUrl) return;
-
-      driveStatus.textContent = 'Importing from Google Drive… this can take a minute for large folders.';
-      driveForm.querySelector('button').disabled = true;
-
-      try {
-        const res = await fetch(`/events/${EVENT_ID}/drive-import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ driveUrl }),
-        });
-        const data = await res.json();
-
-        if (res.status === 402) {
-          showBillingBanner(data.message || 'You have run out of free photos for this event.');
-          driveStatus.textContent = '';
-          return;
-        }
-
-        if (!res.ok) {
-          driveStatus.textContent = data.message || data.error || 'Could not import from Google Drive.';
-          return;
-        }
-
-        for (const p of data.imported || []) {
-          addPhotoTile(p.photoId, p.url, 0);
-        }
-
-        const parts = [];
-        if (data.imported?.length) parts.push(`${data.imported.length} photo${data.imported.length === 1 ? '' : 's'} imported`);
-        if (data.skipped) parts.push(`${data.skipped} skipped`);
-        driveStatus.textContent = parts.length ? parts.join(', ') + '. Detecting faces…' : 'No new images found in that folder.';
-
-        if (data.stoppedForBilling) {
-          showBillingBanner("You've used up your plan's free photo quota, so the import stopped partway through.");
-        }
-
-        await processPendingPhotos();
-        if (data.imported?.length) {
-          driveStatus.textContent = `${data.imported.length} photo${data.imported.length === 1 ? '' : 's'} imported and scanned for faces.`;
-        }
-      } catch (err) {
-        driveStatus.textContent = 'Error: ' + err.message;
-      } finally {
-        driveForm.querySelector('button').disabled = false;
-      }
+      if (driveUrl) startBackgroundSync('drive', driveForm, { driveUrl }, driveStatus);
     });
   }
 
   if (dropboxForm) {
-    dropboxForm.addEventListener('submit', async (e) => {
+    dropboxForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const dropboxUrl = dropboxUrlInput.value.trim();
-      if (!dropboxUrl) return;
+      if (dropboxUrl) startBackgroundSync('dropbox', dropboxForm, { dropboxUrl }, dropboxStatus);
+    });
+  }
 
-      dropboxStatus.textContent = 'Importing from Dropbox… this can take a minute for large folders.';
-      dropboxForm.querySelector('button').disabled = true;
+  // Kicks off a Drive/Dropbox folder sync (the server runs the actual
+  // download/resize/save loop as a background job — see routes/events.js —
+  // so a big folder doesn't hold an HTTP request open past any proxy
+  // timeout) and polls .../{source}-import/status until it's done, adding
+  // photo tiles and running face detection as photos land via the same
+  // processPendingPhotos() the direct-upload flow uses.
+  async function startBackgroundSync(source, form, body, statusEl) {
+    const button = form.querySelector('button');
+    button.disabled = true;
+    statusEl.textContent = `Starting ${source === 'drive' ? 'Google Drive' : 'Dropbox'} sync…`;
 
-      try {
-        const res = await fetch(`/events/${EVENT_ID}/dropbox-import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dropboxUrl }),
-        });
-        const data = await res.json();
+    try {
+      const res = await fetch(`/events/${EVENT_ID}/${source}-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
 
-        if (res.status === 402) {
-          showBillingBanner(data.message || 'You have run out of free photos for this event.');
-          dropboxStatus.textContent = '';
-          return;
-        }
+      if (!res.ok) {
+        statusEl.textContent = data.message || data.error || `Could not start the ${source} sync.`;
+        return;
+      }
 
-        if (!res.ok) {
-          dropboxStatus.textContent = data.message || data.error || 'Could not import from Dropbox.';
-          return;
-        }
+      if (!data.started) {
+        statusEl.textContent = data.message || 'No new images found in that folder.';
+        return;
+      }
 
-        for (const p of data.imported || []) {
-          addPhotoTile(p.photoId, p.url, 0);
-        }
+      statusEl.textContent = `Syncing ${data.total} photo${data.total === 1 ? '' : 's'} in the background — you can leave this page and come back.`;
 
-        const parts = [];
-        if (data.imported?.length) parts.push(`${data.imported.length} photo${data.imported.length === 1 ? '' : 's'} imported`);
-        if (data.skipped) parts.push(`${data.skipped} skipped`);
-        dropboxStatus.textContent = parts.length ? parts.join(', ') + '. Detecting faces…' : 'No new images found in that folder.';
+      for (;;) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        await processPendingPhotos();
 
-        if (data.stoppedForBilling) {
-          showBillingBanner("You've used up your plan's free photo quota, so the import stopped partway through.");
+        const statusRes = await fetch(`/events/${EVENT_ID}/${source}-import/status`);
+        const job = await statusRes.json();
+
+        if (job.status === 'running') {
+          statusEl.textContent = `Syncing… ${job.imported} imported, ${job.skipped} skipped so far (of ${job.total}).`;
+          continue;
         }
 
         await processPendingPhotos();
-        if (data.imported?.length) {
-          dropboxStatus.textContent = `${data.imported.length} photo${data.imported.length === 1 ? '' : 's'} imported and scanned for faces.`;
+
+        if (job.status === 'blocked_by_billing') {
+          showBillingBanner("You've used up your plan's free photo quota, so the sync stopped partway through.");
+        } else if (job.status === 'error') {
+          statusEl.textContent = `Sync error: ${job.error || 'something went wrong.'} ${job.imported} photo${job.imported === 1 ? '' : 's'} made it in before that.`;
+          return;
         }
-      } catch (err) {
-        dropboxStatus.textContent = 'Error: ' + err.message;
-      } finally {
-        dropboxForm.querySelector('button').disabled = false;
+
+        statusEl.textContent = `Done — ${job.imported} imported${job.skipped ? `, ${job.skipped} skipped` : ''}.`;
+        return;
       }
-    });
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+      button.disabled = false;
+    }
   }
 
   loadModels().catch((err) => {

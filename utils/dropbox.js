@@ -9,12 +9,10 @@ const LIST_FOLDER_URL = 'https://api.dropboxapi.com/2/files/list_folder';
 const LIST_FOLDER_CONTINUE_URL = 'https://api.dropboxapi.com/2/files/list_folder/continue';
 const DOWNLOAD_URL = 'https://content.dropboxapi.com/2/sharing/get_shared_link_file';
 
-// Per-sync cap. Kept low (not "however many files exist") because the import
-// loop downloads, resizes, and saves each file one at a time inside a single
-// HTTP request — a few hundred files would run past any reasonable reverse-
-// proxy timeout. Already-imported files are skipped on a re-sync (deduped by
-// dropbox_file_id), so clicking "Sync" again on a bigger folder just resumes.
-const MAX_FILES = 40;
+// Safety cap per sync — the import itself runs as a background job (see
+// utils/syncJobs.js), not inside the HTTP request, so this just bounds a
+// single run's worst case rather than protecting against a proxy timeout.
+const MAX_FILES = 500;
 const IMAGE_EXT_RE = /\.(jpe?g|png|webp)$/i;
 
 function isDropboxShareUrl(url) {

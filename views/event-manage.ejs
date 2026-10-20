@@ -66,7 +66,7 @@
 
     <div class="card">
       <p class="label">Sync from Google Drive</p>
-      <p class="muted small">Paste a link to a public Google Drive folder ("Anyone with the link can view") and we'll pull in its photos (up to 40 per sync — for a bigger folder, click Sync again to bring in the rest).</p>
+      <p class="muted small">Paste a link to a public Google Drive folder ("Anyone with the link can view") and we'll pull in every photo from it, syncing in the background.</p>
       <% if (!driveConfigured) { %>
         <p class="muted small">⚠️ Google Drive sync isn't configured on this server yet — an administrator needs to set a <code>GOOGLE_API_KEY</code> environment variable with the Drive API enabled. The form below will show a clear error until then.</p>
       <% } %>
@@ -79,7 +79,7 @@
 
     <div class="card">
       <p class="label">Sync from Dropbox</p>
-      <p class="muted small">Paste a link to a public Dropbox folder ("Anyone with the link can view") and we'll pull in its photos (up to 40 per sync — for a bigger folder, click Sync again to bring in the rest).</p>
+      <p class="muted small">Paste a link to a public Dropbox folder ("Anyone with the link can view") and we'll pull in every photo from it, syncing in the background.</p>
       <% if (!dropboxConfigured) { %>
         <p class="muted small">⚠️ Dropbox sync isn't configured on this server yet — an administrator needs to set a <code>DROPBOX_ACCESS_TOKEN</code> environment variable. The form below will show a clear error until then.</p>
       <% } %>
