@@ -69,7 +69,7 @@ a { color: inherit; text-decoration: none; }
 .lottie-icon { display: inline-block; flex: 0 0 auto; vertical-align: middle; }
 .lottie-icon-sm { width: 18px; height: 18px; margin-right: 2px; }
 .lottie-icon-md { width: 28px; height: 28px; }
-.lottie-icon-lg { width: 175px; height: 175px; }
+.lottie-icon-lg { width: 215px; height: 215px; }
 .usecase .lottie-icon { width: 36px; height: 36px; margin-bottom: 6px; }
 
 .btn {
@@ -524,7 +524,7 @@ a { color: inherit; text-decoration: none; }
 
   .selfie-card-inner { flex-direction: column; text-align: center; }
   .selfie-avatar { width: 110px; height: 110px; font-size: 34px; }
-  .selfie-avatar .lottie-icon-lg { width: 137px; height: 137px; }
+  .selfie-avatar .lottie-icon-lg { width: 169px; height: 169px; }
   .selfie-actions { justify-content: center; }
   .selfie-cta, .selfie-actions .btn { width: 100%; justify-content: center; }
 
