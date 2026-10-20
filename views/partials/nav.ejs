@@ -4,7 +4,10 @@
       <img src="/images/logo-icon.png" alt="" class="brand-icon">
       KEEPSORA
     </a>
-    <nav class="nav-links">
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav-links" id="navLinks">
       <a href="/pricing">Pricing</a>
       <% if (currentUser) { %>
         <a href="/dashboard">Dashboard</a>

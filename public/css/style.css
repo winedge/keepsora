@@ -51,6 +51,15 @@ a { color: inherit; text-decoration: none; }
 .nav-links { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px 18px; font-size: 14px; }
 .nav-links a:not(.btn) { color: var(--muted); }
 .nav-links a:not(.btn):hover { color: var(--text); }
+
+.nav-toggle {
+  display: none; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  width: 36px; height: 36px; background: none; border: none; cursor: pointer; padding: 0; flex: 0 0 auto;
+}
+.nav-toggle span { display: block; height: 2px; width: 20px; background: var(--text); border-radius: 2px; transition: transform 0.2s ease, opacity 0.2s ease; }
+.nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle.open span:nth-child(2) { opacity: 0; }
+.nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 .inline-form { display: inline; }
 .link-btn {
   background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 0; font-family: inherit;
@@ -478,11 +487,21 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 640px) {
   body { overflow-x: hidden; }
 
-  .nav-inner { padding: 12px 16px; flex-wrap: wrap; row-gap: 8px; }
+  .nav-inner { padding: 12px 16px; position: relative; }
   .brand { font-size: 16px; gap: 7px; }
   .brand-icon { height: 24px; }
-  .nav-links { gap: 8px 12px; font-size: 13px; flex-wrap: wrap; justify-content: flex-end; }
-  .nav-links .btn-sm { padding: 6px 12px; }
+  .nav-toggle { display: flex; }
+  .nav-links {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 2px; font-size: 15px;
+    background: var(--bg); border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 12px 12px; padding: 8px 16px 16px; box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a:not(.btn) { padding: 10px 2px; }
+  .nav-links .btn-sm { margin-top: 6px; justify-content: center; }
+  .nav-links .inline-form { width: 100%; }
+  .nav-links .link-btn { padding: 10px 2px; width: 100%; text-align: left; font-size: 15px; }
 
   .hero { padding: 48px 16px 36px; }
   .hero h1 { font-size: 28px; }
