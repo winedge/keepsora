@@ -44,7 +44,6 @@
               <button type="submit" class="btn btn-sm btn-ghost">Move back to Single Event</button>
             </form>
           <% } %>
-          <a class="btn btn-sm btn-ghost" href="/pricing">Compare plans</a>
           <% if (stripeConfigured && user.stripe_customer_id) { %>
             <a class="btn btn-sm btn-ghost" href="/billing/portal">Manage billing on Stripe</a>
           <% } %>

@@ -42,6 +42,9 @@ function baseUrlFor(req) {
 }
 
 router.get('/pricing', (req, res) => {
+  // Temporarily hidden — flip this back to the render below to restore it.
+  return res.redirect('/');
+  // eslint-disable-next-line no-unreachable
   const currentPlan = req.user ? getUser(req.user.id).plan : null;
   res.render('pricing', { plans: PLANS, currentPlan });
 });
