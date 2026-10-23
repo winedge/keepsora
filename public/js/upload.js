@@ -93,7 +93,7 @@
     if (!modelsReady) return 0;
     const img = await loadImage(url);
     const detections = await faceapi
-      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.4 }))
+      .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.5 }))
       .withFaceLandmarks()
       .withFaceDescriptors();
 
